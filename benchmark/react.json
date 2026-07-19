@@ -1,0 +1,27 @@
+[
+    {
+        "id": "react_001",
+        "prompt": "Create a React component that fetches data from an API and displays a loading spinner.",
+        "expected": "Functional component with useEffect, useState, and conditional rendering"
+    },
+    {
+        "id": "react_002",
+        "prompt": "Write a custom React hook for debounced search input.",
+        "expected": "Custom hook with useEffect and setTimeout cleanup"
+    },
+    {
+        "id": "react_003",
+        "prompt": "Create a React context provider for theme toggling (dark/light mode).",
+        "expected": "Context with provider and useContext consumer"
+    },
+    {
+        "id": "react_004",
+        "prompt": "Write a React form with validation using controlled components.",
+        "expected": "Form with state management and error display"
+    },
+    {
+        "id": "react_005",
+        "prompt": "Create a React component that implements infinite scroll.",
+        "expected": "Intersection Observer or scroll event based pagination"
+    }
+]

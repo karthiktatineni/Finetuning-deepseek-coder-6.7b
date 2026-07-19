@@ -1,0 +1,27 @@
+[
+    {
+        "id": "py_001",
+        "prompt": "Write Merge Sort in Python.",
+        "expected": "Working implementation of merge sort with correct splitting and merging"
+    },
+    {
+        "id": "py_002",
+        "prompt": "Write a Python decorator that caches function results.",
+        "expected": "Working memoization decorator"
+    },
+    {
+        "id": "py_003",
+        "prompt": "Write a Python context manager for database connections.",
+        "expected": "Context manager using __enter__ and __exit__"
+    },
+    {
+        "id": "py_004",
+        "prompt": "Implement a Python generator that yields Fibonacci numbers.",
+        "expected": "Generator function using yield"
+    },
+    {
+        "id": "py_005",
+        "prompt": "Write a Python class that implements a thread-safe singleton pattern.",
+        "expected": "Singleton with thread locking"
+    }
+]

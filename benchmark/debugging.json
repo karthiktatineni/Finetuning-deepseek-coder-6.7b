@@ -1,0 +1,27 @@
+[
+    {
+        "id": "debug_001",
+        "prompt": "This Python code throws an IndexError. Find and fix the bug:\n\ndef get_last(items):\n    return items[len(items)]",
+        "expected": "Off-by-one fix: items[len(items) - 1] or items[-1]"
+    },
+    {
+        "id": "debug_002",
+        "prompt": "This function is supposed to reverse a string but returns None. Fix it:\n\ndef reverse(s):\n    s[::-1]",
+        "expected": "Missing return statement"
+    },
+    {
+        "id": "debug_003",
+        "prompt": "This async Python code has a race condition. Identify and fix it:\n\nimport asyncio\ncounter = 0\nasync def increment():\n    global counter\n    val = counter\n    await asyncio.sleep(0)\n    counter = val + 1",
+        "expected": "Use asyncio.Lock to protect shared state"
+    },
+    {
+        "id": "debug_004",
+        "prompt": "This SQL query is extremely slow on a table with 10M rows. Optimize it:\n\nSELECT * FROM orders WHERE YEAR(created_at) = 2024",
+        "expected": "Replace function on column with range comparison for index usage"
+    },
+    {
+        "id": "debug_005",
+        "prompt": "This React component re-renders infinitely. Find and fix the bug:\n\nfunction App() {\n  const [count, setCount] = useState(0);\n  useEffect(() => { setCount(count + 1); });\n  return <div>{count}</div>;\n}",
+        "expected": "Add dependency array to useEffect"
+    }
+]

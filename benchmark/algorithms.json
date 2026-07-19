@@ -1,0 +1,27 @@
+[
+    {
+        "id": "algo_001",
+        "prompt": "Implement binary search in Python.",
+        "expected": "Iterative or recursive binary search with correct bounds"
+    },
+    {
+        "id": "algo_002",
+        "prompt": "Implement a trie (prefix tree) with insert and search methods.",
+        "expected": "Trie node class with insert and search"
+    },
+    {
+        "id": "algo_003",
+        "prompt": "Write Dijkstra's shortest path algorithm.",
+        "expected": "Priority queue based implementation"
+    },
+    {
+        "id": "algo_004",
+        "prompt": "Implement a LRU cache with O(1) get and put.",
+        "expected": "OrderedDict or doubly-linked list + hashmap"
+    },
+    {
+        "id": "algo_005",
+        "prompt": "Write a function to detect a cycle in a linked list.",
+        "expected": "Floyd's cycle detection (tortoise and hare)"
+    }
+]

@@ -1,0 +1,27 @@
+[
+    {
+        "id": "api_001",
+        "prompt": "Create a FastAPI endpoint that accepts a JSON body with 'name' and 'email' fields and returns a greeting.",
+        "expected": "Working FastAPI route with Pydantic model"
+    },
+    {
+        "id": "api_002",
+        "prompt": "Write a FastAPI dependency that validates an API key from request headers.",
+        "expected": "Dependency injection with HTTPException on failure"
+    },
+    {
+        "id": "api_003",
+        "prompt": "Create a FastAPI WebSocket endpoint for a simple chat application.",
+        "expected": "WebSocket route with connection handling"
+    },
+    {
+        "id": "api_004",
+        "prompt": "Write FastAPI middleware that logs request duration.",
+        "expected": "Middleware with timing logic"
+    },
+    {
+        "id": "api_005",
+        "prompt": "Create a FastAPI CRUD router for a 'Task' resource with SQLAlchemy.",
+        "expected": "Router with GET, POST, PUT, DELETE using ORM"
+    }
+]

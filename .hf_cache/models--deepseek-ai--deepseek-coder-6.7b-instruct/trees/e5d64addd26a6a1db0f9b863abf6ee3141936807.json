@@ -1,0 +1,69 @@
+{
+ "format_version": 1,
+ "files": {
+  ".gitattributes": {
+   "size": 1519,
+   "blob_id": "a6344aac8c09253b3b630fb776ae94478aa0275b"
+  },
+  "LICENSE": {
+   "size": 13760,
+   "blob_id": "9489e95c444dd3a396ec884bfd8afa719e59160f"
+  },
+  "README.md": {
+   "size": 3574,
+   "blob_id": "35cd85041e4732de591a5485e5721c0d54e97536"
+  },
+  "config.json": {
+   "size": 760,
+   "blob_id": "0acc4f7c68fd725bc672e67f81363cad2438294d"
+  },
+  "generation_config.json": {
+   "size": 119,
+   "blob_id": "19a930a8e7a08b1d002e8fa317438423b61fff22"
+  },
+  "model-00001-of-00002.safetensors": {
+   "size": 9978667672,
+   "blob_id": "dc3560a089610e3835d5f4f35fedbcd412e580ac",
+   "lfs_sha256": "ef55ffa04c8de3943c858cbcf7143b9803b3aa608337352ca5cd329f8a208bb6",
+   "lfs_size": 9978667672,
+   "xet_hash": "77cf8358f38659685a414eeff12f69dc03cc589ce2602087dcd0c83e3bc356c9"
+  },
+  "model-00002-of-00002.safetensors": {
+   "size": 3502391696,
+   "blob_id": "0e32c347aaca2fa30b26beea20c394232d560d37",
+   "lfs_sha256": "d4d48eb2dce70933437b29d3f39b10a8820d629f936554209578e8119d5f5b2f",
+   "lfs_size": 3502391696,
+   "xet_hash": "7e2b6c831535e572b6a9c71b5c1b0e78fc69f6266a8d8053f3eeeaaec1741f9d"
+  },
+  "model.safetensors.index.json": {
+   "size": 25125,
+   "blob_id": "d4338e87a01134a05058c25623116fb6678a90c7"
+  },
+  "pytorch_model-00001-of-00002.bin": {
+   "size": 9978720282,
+   "blob_id": "99dbbf695d52306720f26353f5e961109128e0fd",
+   "lfs_sha256": "c2d75c419c6a86602710e347ac09bdc899299c1f1c6b06e542c7588ca69bf603",
+   "lfs_size": 9978720282,
+   "xet_hash": "4f5922b47ac328d4065a4b0edee1bd19866ab8357ff32b045bfc82a4f55d52ed"
+  },
+  "pytorch_model-00002-of-00002.bin": {
+   "size": 3502408963,
+   "blob_id": "d94a50a7ad4305c4546d0529c0e789623e5b2653",
+   "lfs_sha256": "7544ec56f13952b201d7dc1e438093fc555b441bad520b1fb2e3a87b46fad7be",
+   "lfs_size": 3502408963,
+   "xet_hash": "e15015319d98c4e3bcedaf21f313f6ae34e03ca798bfe86a282c903dffb041d1"
+  },
+  "pytorch_model.bin.index.json": {
+   "size": 23950,
+   "blob_id": "03ed4bdaa9d6707eefe2678470686f040dea73c9"
+  },
+  "tokenizer.json": {
+   "size": 1367962,
+   "blob_id": "0dfa4268afc2cf45515dec553772d7ca79f79762"
+  },
+  "tokenizer_config.json": {
+   "size": 1868,
+   "blob_id": "68f6f5bd3350366399a8c53d32a602c825390806"
+  }
+ }
+}

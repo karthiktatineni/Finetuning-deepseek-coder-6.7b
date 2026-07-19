@@ -1,0 +1,284 @@
+{
+  "algorithms": [
+    {
+      "id": "algo_001",
+      "prompt": "Implement binary search in Python.",
+      "expected": "Iterative or recursive binary search with correct bounds",
+      "generated": "Here is a simple implementation of binary search in Python:\n\n```python\ndef binary_search(arr, low, high, x):\n    if high >= low:\n        mid = (high + low) // 2\n        if arr[mid] == x:\n            return mid\n        elif arr[mid] > x:\n            return binary_search(arr, low, mid - 1, x)\n        else:\n            return binary_search(arr, mid + 1, high, x)\n    else:\n        return -1\n```\n",
+      "extracted_code": "def binary_search(arr, low, high, x):\n    if high >= low:\n        mid = (high + low) // 2\n        if arr[mid] == x:\n            return mid\n        elif arr[mid] > x:\n            return binary_search(arr, low, mid - 1, x)\n        else:\n            return binary_search(arr, mid + 1, high, x)\n    else:\n        return -1",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "algo_002",
+      "prompt": "Implement a trie (prefix tree) with insert and search methods.",
+      "expected": "Trie node class with insert and search",
+      "generated": "Here is a Python solution:\n\n```python\nclass TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.is_end_of_word = False\n\nclass Trie:\n    def __init__(self):\n        self.root = TrieNode()\n\n    def insert(self, word: str) -> None:\n        node = self.root\n        for char in word:\n            if char not in node.children:\n                node.children[char] = TrieNode()\n            node = node.children[char]\n        node.is_end_of_word = True\n\n    def search(self, word: str) -> bool:\n        node = self.root\n        for char in word:\n            if char not in node.children:\n                return False\n            node = node.children[char]\n        return node.is_end_of_word\n```\n",
+      "extracted_code": "class TrieNode:\n    def __init__(self):\n        self.children = {}\n        self.is_end_of_word = False\n\nclass Trie:\n    def __init__(self):\n        self.root = TrieNode()\n\n    def insert(self, word: str) -> None:\n        node = self.root\n        for char in word:\n            if char not in node.children:\n                node.children[char] = TrieNode()\n            node = node.children[char]\n        node.is_end_of_word = True\n\n    def search(self, word: str) -> bool:\n        node = self.root\n        for char in word:\n            if char not in node.children:\n                return False\n            node = node.children[char]\n        return node.is_end_of_word",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "algo_003",
+      "prompt": "Write Dijkstra's shortest path algorithm.",
+      "expected": "Priority queue based implementation",
+      "generated": "Sure, here is the Python implementation of Dijkstra's shortest path algorithm:\n\n```python\nimport sys\nimport heapq\n\ndef shortest_path(graph, start, end):\n    heap = [(0, start)]\n    distances = {node: float('infinity') for node in graph}\n    distances[start] = 0\n    paths = {start: []}\n\n    while heap:\n        (curr_distance, curr_vertex) = heapq.heappop(heap)\n        for neighbor, neighbor_distance in graph[curr_vertex].items():\n            distance = curr_distance + neighbor_distance\n            if distance < distances[neighbor]: \n                distances[neighbor] = distance\n                paths[neighbor] = paths[curr_vertex] + [neighbor]\n                heapq.heappush(heap, (distance, neighbor))\n\n    return distances[end], paths[end]\n\n# Test the function\ngraph = {\n    'A': {'B': 1, 'C': 3, 'E': 7},\n    'B': {'D': 2},\n    'C': {'B': 1, 'D': 3},\n    'D': {'E': 1},\n    'E': {}\n}\nprint(shortest_path(graph, 'A', 'E'))  # Output: (4, ['A', 'C', 'D', 'E'])\n```\n\nThis function takes a graph represented as an adjacency list (a dictionary where the keys are nodes and the values are dictionaries representing the edges to other nodes) and two nodes: the start node and the end node. It returns the shortest distance from the start node to the end node and the shortest path from the start node to the end node.\n",
+      "extracted_code": "import sys\nimport heapq\n\ndef shortest_path(graph, start, end):\n    heap = [(0, start)]\n    distances = {node: float('infinity') for node in graph}\n    distances[start] = 0\n    paths = {start: []}\n\n    while heap:\n        (curr_distance, curr_vertex) = heapq.heappop(heap)\n        for neighbor, neighbor_distance in graph[curr_vertex].items():\n            distance = curr_distance + neighbor_distance\n            if distance < distances[neighbor]: \n                distances[neighbor] = distance\n                paths[neighbor] = paths[curr_vertex] + [neighbor]\n                heapq.heappush(heap, (distance, neighbor))\n\n    return distances[end], paths[end]\n\n# Test the function\ngraph = {\n    'A': {'B': 1, 'C': 3, 'E': 7},\n    'B': {'D': 2},\n    'C': {'B': 1, 'D': 3},\n    'D': {'E': 1},\n    'E': {}\n}\nprint(shortest_path(graph, 'A', 'E'))  # Output: (4, ['A', 'C', 'D', 'E'])",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "algo_004",
+      "prompt": "Implement a LRU cache with O(1) get and put.",
+      "expected": "OrderedDict or doubly-linked list + hashmap",
+      "generated": "Here is a Python solution using OrderedDict:\n\n```python\nfrom collections import OrderedDict\n\nclass LRUCache:\n\n    def __init__(self, capacity: int):\n        self.cache = OrderedDict()\n        self.capacity = capacity\n\n    def get(self, key: int) -> int:\n        if key not in self.cache:\n            return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key: int, value: int) -> None:\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n```\n",
+      "extracted_code": "from collections import OrderedDict\n\nclass LRUCache:\n\n    def __init__(self, capacity: int):\n        self.cache = OrderedDict()\n        self.capacity = capacity\n\n    def get(self, key: int) -> int:\n        if key not in self.cache:\n            return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key: int, value: int) -> None:\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "algo_005",
+      "prompt": "Write a function to detect a cycle in a linked list.",
+      "expected": "Floyd's cycle detection (tortoise and hare)",
+      "generated": "Here is a Python solution using Floyd's Cycle-Finding Algorithm, also known as the Tortoise and the Hare algorithm:\n\n```python\nclass Node:\n    def __init__(self, x):\n        self.val = x\n        self.next = None\n\ndef hasCycle(head):\n    if head is None:\n        return False\n\n    slow = head\n    fast = head.next\n\n    while slow != fast:\n        if fast is None or fast.next is None:\n            return False\n        slow = slow.next\n        fast = fast.next.next\n\n    return True\n```\n",
+      "extracted_code": "class Node:\n    def __init__(self, x):\n        self.val = x\n        self.next = None\n\ndef hasCycle(head):\n    if head is None:\n        return False\n\n    slow = head\n    fast = head.next\n\n    while slow != fast:\n        if fast is None or fast.next is None:\n            return False\n        slow = slow.next\n        fast = fast.next.next\n\n    return True",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    }
+  ],
+  "debugging": [
+    {
+      "id": "debug_001",
+      "prompt": "This Python code throws an IndexError. Find and fix the bug:\n\ndef get_last(items):\n    return items[len(items)]",
+      "expected": "Off-by-one fix: items[len(items) - 1] or items[-1]",
+      "generated": "The bug in the code is that the index is out of range. The function is trying to access an index that is equal to the length of the list, which is not a valid index for the list. The correct index should be one less than the length of the list.\n\nHere is the corrected code:\n\n```python\ndef get_last(items):\n    return items[len(items)-1]\n```\n",
+      "extracted_code": "def get_last(items):\n    return items[len(items)-1]",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "debug_002",
+      "prompt": "This function is supposed to reverse a string but returns None. Fix it:\n\ndef reverse(s):\n    s[::-1]",
+      "expected": "Missing return statement",
+      "generated": "The function is supposed to return the reversed string, but it doesn't return anything because it doesn't use the return statement. Here is the corrected function:\n\n```python\ndef reverse(s):\n    return s[::-1]\n```\n",
+      "extracted_code": "def reverse(s):\n    return s[::-1]",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "debug_003",
+      "prompt": "This async Python code has a race condition. Identify and fix it:\n\nimport asyncio\ncounter = 0\nasync def increment():\n    global counter\n    val = counter\n    await asyncio.sleep(0)\n    counter = val + 1",
+      "expected": "Use asyncio.Lock to protect shared state",
+      "generated": "The race condition in this code is caused by the global variable counter being accessed and modified by multiple tasks concurrently. This can lead to unpredictable results.\n\nTo fix this, you can use the asyncio.Lock() to ensure that only one task can access the counter at a time. Here is the corrected code:\n\n```python\nimport asyncio\n\ncounter = 0\nlock = asyncio.Lock()\n\nasync def increment():\n    global counter\n    async with lock:\n        val = counter\n        await asyncio.sleep(0)\n        counter = val + 1\n```\n",
+      "extracted_code": "import asyncio\n\ncounter = 0\nlock = asyncio.Lock()\n\nasync def increment():\n    global counter\n    async with lock:\n        val = counter\n        await asyncio.sleep(0)\n        counter = val + 1",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "debug_004",
+      "prompt": "This SQL query is extremely slow on a table with 10M rows. Optimize it:\n\nSELECT * FROM orders WHERE YEAR(created_at) = 2024",
+      "expected": "Replace function on column with range comparison for index usage",
+      "generated": "The query is slow because it's scanning the entire table. To optimize it, you can create an index on the `created_at` column and then use the `YEAR()` function to filter the data.\n\nHere is the optimized query:\n\n```sql\nSELECT * FROM orders WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01'\n```\n\nYou can create an index on the `created_at` column to speed up the query:\n\n```sql\nCREATE INDEX idx_orders_created_at ON orders(created_at);\n```\n\nThis index will speed up the range queries on the `created_at` column.\n",
+      "extracted_code": "sql\nSELECT * FROM orders WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01'",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "debug_005",
+      "prompt": "This React component re-renders infinitely. Find and fix the bug:\n\nfunction App() {\n  const [count, setCount] = useState(0);\n  useEffect(() => { setCount(count + 1); });\n  return <div>{count}</div>;\n}",
+      "expected": "Add dependency array to useEffect",
+      "generated": "The issue with this code is that the `useEffect` hook is trying to update the state of `count` before it has been initialized. This results in an infinite loop because the state update function `setCount` is being called within the `useEffect` hook, which is causing the component to re-render and the `useEffect` hook to run again.\n\nTo fix this, you should pass a function to `useEffect` that takes the previous state as an argument and returns the new state. Here is the corrected code:\n\n```jsx\nfunction App() {\n  const [count, setCount] = useState(0);\n  useEffect(() => { setCount(prevCount => prevCount + 1); }, []);\n  return <div>{count}</div>;\n}\n```\n\nThe `[]` in the second argument to `useEffect` makes it run only once after the initial render, which is why the count only increments once.\n",
+      "extracted_code": "jsx\nfunction App() {\n  const [count, setCount] = useState(0);\n  useEffect(() => { setCount(prevCount => prevCount + 1); }, []);\n  return <div>{count}</div>;\n}",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    }
+  ],
+  "fastapi": [
+    {
+      "id": "api_001",
+      "prompt": "Create a FastAPI endpoint that accepts a JSON body with 'name' and 'email' fields and returns a greeting.",
+      "expected": "Working FastAPI route with Pydantic model",
+      "generated": "Here is a simple FastAPI endpoint that accepts a JSON body with 'name' and 'email' fields and returns a greeting:\n\n```python\nfrom fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass Item(BaseModel):\n    name: str\n    email: str\n\n@app.post(\"/greetings/\")\nasync def create_greeting(item: Item):\n    return {\"greeting\": f\"Hello {item.name}, your email is {item.email}\"}\n```\n",
+      "extracted_code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass Item(BaseModel):\n    name: str\n    email: str\n\n@app.post(\"/greetings/\")\nasync def create_greeting(item: Item):\n    return {\"greeting\": f\"Hello {item.name}, your email is {item.email}\"}",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "api_002",
+      "prompt": "Write a FastAPI dependency that validates an API key from request headers.",
+      "expected": "Dependency injection with HTTPException on failure",
+      "generated": "Here is a simple example of a FastAPI dependency that validates an API key from request headers:\n\n```python\nfrom fastapi import Header, HTTPException, Depends\n\nasync def api_key_auth(api_key: str = Header(...)):\n    if api_key != \"your_api_key\":\n        raise HTTPException(\n            status_code=400, detail=\"Invalid API Key\"\n        )\n    return api_key\n```\n\nYou can use this dependency in your routes like this:\n\n```python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"/items/\", dependencies=[Depends(api_key_auth)])\nasync def read_items():\n    return [{\"item\": \"Foo\"}, {\"item\": \"Bar\"}]\n```\n\nIn this example, the API key is expected to be sent in the `Authorization` header of the request. If the API key is not valid, a 400 response with the detail \"Invalid API Key\" is returned.\n",
+      "extracted_code": "from fastapi import Header, HTTPException, Depends\n\nasync def api_key_auth(api_key: str = Header(...)):\n    if api_key != \"your_api_key\":\n        raise HTTPException(\n            status_code=400, detail=\"Invalid API Key\"\n        )\n    return api_key",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "api_003",
+      "prompt": "Create a FastAPI WebSocket endpoint for a simple chat application.",
+      "expected": "WebSocket route with connection handling",
+      "generated": "Sure, here is a simple example of a FastAPI WebSocket endpoint for a chat application:\n\n```python\nfrom fastapi import FastAPI, WebSocket\nfrom typing import List\n\napp = FastAPI()\n\nclass ConnectionManager:\n    def __init__(self):\n        self.active_connections: List[WebSocket] = []\n\n    async def connect(self, websocket: WebSocket):\n        await websocket.accept()\n        self.active_connections.append(websocket)\n\n    async def disconnect(self, websocket: WebSocket):\n        self.active_connections.remove(websocket)\n\n    async def broadcast(self, data: str):\n        for connection in self.active_connections:\n            await connection.send_text(data)\n\nmanager = ConnectionManager()\n\n@app.websocket(\"/ws/{client_id}\")\nasync def websocket_endpoint(websocket: WebSocket, client_id: int):\n    await manager.connect(websocket)\n    try:\n        while True:\n            data = await websocket.receive_text()\n            await manager.broadcast(f\"Client #{client_id}: {data}\")\n    except WebSocketDisconnect:\n        manager.disconnect(websocket)\n```\n\nIn this code, we define a WebSocket endpoint at \"/ws/{client_id}\". When a client connects, it's added to the list of active connections. When a client sends a message, it's broadcasted to all other active connections. When a client disconnects, it's removed from the list of active connections.\n",
+      "extracted_code": "from fastapi import FastAPI, WebSocket\nfrom typing import List\n\napp = FastAPI()\n\nclass ConnectionManager:\n    def __init__(self):\n        self.active_connections: List[WebSocket] = []\n\n    async def connect(self, websocket: WebSocket):\n        await websocket.accept()\n        self.active_connections.append(websocket)\n\n    async def disconnect(self, websocket: WebSocket):\n        self.active_connections.remove(websocket)\n\n    async def broadcast(self, data: str):\n        for connection in self.active_connections:\n            await connection.send_text(data)\n\nmanager = ConnectionManager()\n\n@app.websocket(\"/ws/{client_id}\")\nasync def websocket_endpoint(websocket: WebSocket, client_id: int):\n    await manager.connect(websocket)\n    try:\n        while True:\n            data = await websocket.receive_text()\n            await manager.broadcast(f\"Client #{client_id}: {data}\")\n    except WebSocketDisconnect:\n        manager.disconnect(websocket)",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "api_004",
+      "prompt": "Write FastAPI middleware that logs request duration.",
+      "expected": "Middleware with timing logic",
+      "generated": "Sure, here is a simple example of a FastAPI middleware that logs the duration of each request:\n\n```python\nfrom fastapi import FastAPI, Request, Response\nfrom starlette.middleware.base import BaseHTTPMiddleware\nimport time\n\nclass LoggingMiddleware(BaseHTTPMiddleware):\n    async def dispatch(self, request: Request, call_next: callable) -> Response:\n        start_time = time.time()\n        response = await call_next(request)\n        process_time = time.time() - start_time\n        print(f\"Request to {request.url} took {process_time} seconds\")\n        return response\n\napp = FastAPI()\n\n# Add the middleware\napp.add_middleware(LoggingMiddleware)\n\n@app.get(\"/\")\nasync def read_root():\n    return {\"Hello\": \"World\"}\n```\n\nThis middleware will log the time it took to process each request to the root path (\"/\"). The time is measured in seconds.\n",
+      "extracted_code": "from fastapi import FastAPI, Request, Response\nfrom starlette.middleware.base import BaseHTTPMiddleware\nimport time\n\nclass LoggingMiddleware(BaseHTTPMiddleware):\n    async def dispatch(self, request: Request, call_next: callable) -> Response:\n        start_time = time.time()\n        response = await call_next(request)\n        process_time = time.time() - start_time\n        print(f\"Request to {request.url} took {process_time} seconds\")\n        return response\n\napp = FastAPI()\n\n# Add the middleware\napp.add_middleware(LoggingMiddleware)\n\n@app.get(\"/\")\nasync def read_root():\n    return {\"Hello\": \"World\"}",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "api_005",
+      "prompt": "Create a FastAPI CRUD router for a 'Task' resource with SQLAlchemy.",
+      "expected": "Router with GET, POST, PUT, DELETE using ORM",
+      "generated": "Sure, here is a simple example of a FastAPI CRUD router for a 'Task' resource with SQLAlchemy:\n\n```python\nfrom fastapi import APIRouter, Depends, HTTPException\nfrom sqlalchemy.orm import Session\nfrom . import schemas, crud\nfrom .database import SessionLocal\n\nrouter = APIRouter()\n\n# Use session to interact with the database\ndef get_db():\n    try:\n        db = SessionLocal()\n        yield db\n    finally:\n        db.close()\n\n@router.post(\"/tasks/\", response_model=schemas.Task)\ndef create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):\n    db_task = crud.get_task_by_name(db, name=task.name)\n    if db_task:\n        raise HTTPException(status_code=400, detail=\"Task already exists\")\n    return crud.create_task(db=db, task=task)\n\n@router.get(\"/tasks/\", response_model=List[schemas.Task])\ndef read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):\n    tasks = crud.get_tasks(db, skip=skip, limit=limit)\n    return tasks\n\n@router.get(\"/tasks/{task_id}\", response_model=schemas.Task)\ndef read_task(task_id: int, db: Session = Depends(get_db)):\n    db_task = crud.get_task(db, task_id=task_id)\n    if db_task is None:\n        raise HTTPException(status_code=404, detail=\"Task not found\")\n    return db_task\n\n@router.put(\"/tasks/{task_id}\", response_model=schemas.Task)\ndef update_task(task_id: int, task: schemas.TaskCreate, db: Session = Depends(get_db)):\n    db_task = crud.get_task(db, task_id=task_id)\n    if db_task is None:\n        raise HTTPException(status_code",
+      "extracted_code": "from fastapi import APIRouter, Depends, HTTPException\nfrom sqlalchemy.orm import Session\nfrom . import schemas, crud\nfrom .database import SessionLocal\n\nrouter = APIRouter()\n\n# Use session to interact with the database\ndef get_db():\n    try:\n        db = SessionLocal()\n        yield db\n    finally:\n        db.close()\n\n@router.post(\"/tasks/\", response_model=schemas.Task)\ndef create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):\n    db_task = crud.get_task_by_name(db, name=task.name)\n    if db_task:\n        raise HTTPException(status_code=400, detail=\"Task already exists\")\n    return crud.create_task(db=db, task=task)\n\n@router.get(\"/tasks/\", response_model=List[schemas.Task])\ndef read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):\n    tasks = crud.get_tasks(db, skip=skip, limit=limit)\n    return tasks\n\n@router.get(\"/tasks/{task_id}\", response_model=schemas.Task)\ndef read_task(task_id: int, db: Session = Depends(get_db)):\n    db_task = crud.get_task(db, task_id=task_id)\n    if db_task is None:\n        raise HTTPException(status_code=404, detail=\"Task not found\")\n    return db_task\n\n@router.put(\"/tasks/{task_id}\", response_model=schemas.Task)\ndef update_task(task_id: int, task: schemas.TaskCreate, db: Session = Depends(get_db)):\n    db_task = crud.get_task(db, task_id=task_id)\n    if db_task is None:\n        raise HTTPException(status_code",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: '(' was never closed on line 39"
+    }
+  ],
+  "python": [
+    {
+      "id": "py_001",
+      "prompt": "Write Merge Sort in Python.",
+      "expected": "Working implementation of merge sort with correct splitting and merging",
+      "generated": "Here is the Python code for Merge Sort:\n\n```python\ndef mergeSort(arr):\n    if len(arr) > 1:\n        mid = len(arr)//2\n        L = arr[:mid]\n        R = arr[mid:]\n        mergeSort(L)\n        mergeSort(R)\n        i = j = k = 0\n        while i < len(L) and j < len(R):\n            if L[i] < R[j]:\n                arr[k] = L[i]\n                i += 1\n            else:\n                arr[k] = R[j]\n                j += 1\n            k += 1\n        while i < len(L):\n            arr[k] = L[i]\n            i += 1\n            k += 1\n        while j < len(R):\n            arr[k] = R[j]\n            j += 1\n            k += 1\n    return arr\n```\n",
+      "extracted_code": "def mergeSort(arr):\n    if len(arr) > 1:\n        mid = len(arr)//2\n        L = arr[:mid]\n        R = arr[mid:]\n        mergeSort(L)\n        mergeSort(R)\n        i = j = k = 0\n        while i < len(L) and j < len(R):\n            if L[i] < R[j]:\n                arr[k] = L[i]\n                i += 1\n            else:\n                arr[k] = R[j]\n                j += 1\n            k += 1\n        while i < len(L):\n            arr[k] = L[i]\n            i += 1\n            k += 1\n        while j < len(R):\n            arr[k] = R[j]\n            j += 1\n            k += 1\n    return arr",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "py_002",
+      "prompt": "Write a Python decorator that caches function results.",
+      "expected": "Working memoization decorator",
+      "generated": "Here is a simple Python decorator that caches function results:\n\n```python\ndef cache_decorator(func):\n    cache = {}\n    def wrapper(*args):\n        if args in cache:\n            return cache[args]\n        else:\n            result = func(*args)\n            cache[args] = result\n            return result\n    return wrapper\n```\n",
+      "extracted_code": "def cache_decorator(func):\n    cache = {}\n    def wrapper(*args):\n        if args in cache:\n            return cache[args]\n        else:\n            result = func(*args)\n            cache[args] = result\n            return result\n    return wrapper",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "py_003",
+      "prompt": "Write a Python context manager for database connections.",
+      "expected": "Context manager using __enter__ and __exit__",
+      "generated": "Here is a simple example of a Python context manager for database connections:\n\n```python\nimport psycopg2\n\nclass DatabaseConnection:\n    def __init__(self, database, user, password):\n        self.database = database\n        self.user = user\n        self.password = password\n        self.conn = None\n\n    def __enter__(self):\n        try:\n            self.conn = psycopg2.connect(database=self.database, user=self.user, password=self.password, host=\"127.0.0.1\", port=\"5432\")\n        except Exception as e:\n            raise e\n        return self.conn\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        if self.conn:\n            self.conn.commit()\n            self.conn.close()\n```\n\nYou can use it like this:\n\n```python\nwith DatabaseConnection('mydatabase', 'myuser', 'mypassword') as conn:\n    cur = conn.cursor()\n    cur.execute('SELECT * FROM my_table')\n    rows = cur.fetchall()\n    for row in rows:\n        print(row)\n```\n",
+      "extracted_code": "import psycopg2\n\nclass DatabaseConnection:\n    def __init__(self, database, user, password):\n        self.database = database\n        self.user = user\n        self.password = password\n        self.conn = None\n\n    def __enter__(self):\n        try:\n            self.conn = psycopg2.connect(database=self.database, user=self.user, password=self.password, host=\"127.0.0.1\", port=\"5432\")\n        except Exception as e:\n            raise e\n        return self.conn\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        if self.conn:\n            self.conn.commit()\n            self.conn.close()",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "py_004",
+      "prompt": "Implement a Python generator that yields Fibonacci numbers.",
+      "expected": "Generator function using yield",
+      "generated": "Here is a Python generator that yields Fibonacci numbers:\n\n```python\ndef fibonacci():\n    a, b = 0, 1\n    while True:\n        yield a\n        a, b = b, a + b\n```\n",
+      "extracted_code": "def fibonacci():\n    a, b = 0, 1\n    while True:\n        yield a\n        a, b = b, a + b",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    },
+    {
+      "id": "py_005",
+      "prompt": "Write a Python class that implements a thread-safe singleton pattern.",
+      "expected": "Singleton with thread locking",
+      "generated": "Here is a Python class that implements a thread-safe singleton pattern:\n\n```python\nimport threading\n\nclass Singleton:\n    _instance = None\n    _lock = threading.Lock()\n\n    def __new__(cls, *args, **kwargs):\n        if not cls._instance:\n            with cls._lock:\n                if not cls._instance:\n                    cls._instance = super(Singleton, cls).__new__(cls)\n        return cls._instance\n```\n",
+      "extracted_code": "import threading\n\nclass Singleton:\n    _instance = None\n    _lock = threading.Lock()\n\n    def __new__(cls, *args, **kwargs):\n        if not cls._instance:\n            with cls._lock:\n                if not cls._instance:\n                    cls._instance = super(Singleton, cls).__new__(cls)\n        return cls._instance",
+      "syntax_valid": true,
+      "syntax_message": "Syntax OK"
+    }
+  ],
+  "react": [
+    {
+      "id": "react_001",
+      "prompt": "Create a React component that fetches data from an API and displays a loading spinner.",
+      "expected": "Functional component with useEffect, useState, and conditional rendering",
+      "generated": "Here is a simple example of a React component that fetches data from an API and displays a loading spinner:\n\n```jsx\nimport React, { useState, useEffect } from 'react';\nimport axios from 'axios';\n\nconst DataFetcher = () => {\n  const [data, setData] = useState(null);\n  const [loading, setLoading] = useState(true);\n\n  useEffect(() => {\n    const fetchData = async () => {\n      setLoading(true);\n      const res = await axios.get('https://api.example.com/data');\n      setData(res.data);\n      setLoading(false);\n    };\n\n    fetchData();\n  }, []);\n\n  if (loading) {\n    return <div>Loading...</div>;\n  }\n\n  if (!data) {\n    return <div>No data</div>;\n  }\n\n  return (\n    <div>\n      {data.map((item, index) => (\n        <div key={index}>{JSON.stringify(item)}</div>\n      ))}\n    </div>\n  );\n};\n\nexport default DataFetcher;\n```\n\nThis component uses the `useState` and `useEffect` hooks to manage the state of the data and loading state. The `useEffect` hook is used to fetch the data from the API when the component is first rendered. The `axios` library is used to make the API request.\n\nThe component first checks if the loading state is true, in which case it renders a loading message. If the data is not yet loaded, it renders a message indicating that there is no data. If the data is loaded, it maps over the data and renders each item as a stringified JSON object.\n",
+      "extracted_code": "jsx\nimport React, { useState, useEffect } from 'react';\nimport axios from 'axios';\n\nconst DataFetcher = () => {\n  const [data, setData] = useState(null);\n  const [loading, setLoading] = useState(true);\n\n  useEffect(() => {\n    const fetchData = async () => {\n      setLoading(true);\n      const res = await axios.get('https://api.example.com/data');\n      setData(res.data);\n      setLoading(false);\n    };\n\n    fetchData();\n  }, []);\n\n  if (loading) {\n    return <div>Loading...</div>;\n  }\n\n  if (!data) {\n    return <div>No data</div>;\n  }\n\n  return (\n    <div>\n      {data.map((item, index) => (\n        <div key={index}>{JSON.stringify(item)}</div>\n      ))}\n    </div>\n  );\n};\n\nexport default DataFetcher;",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "react_002",
+      "prompt": "Write a custom React hook for debounced search input.",
+      "expected": "Custom hook with useEffect and setTimeout cleanup",
+      "generated": "Here is a custom React hook for debounced search input:\n\n```jsx\nimport { useState, useEffect } from 'react';\n\nexport const useDebounce = (value, delay) => {\n  const [debouncedValue, setDebouncedValue] = useState(value);\n\n  useEffect(() => {\n    const handler = setTimeout(() => {\n      setDebouncedValue(value);\n    }, delay);\n\n    return () => {\n      clearTimeout(handler);\n    };\n  }, [value, delay]);\n\n  return debouncedValue;\n};\n```\n",
+      "extracted_code": "jsx\nimport { useState, useEffect } from 'react';\n\nexport const useDebounce = (value, delay) => {\n  const [debouncedValue, setDebouncedValue] = useState(value);\n\n  useEffect(() => {\n    const handler = setTimeout(() => {\n      setDebouncedValue(value);\n    }, delay);\n\n    return () => {\n      clearTimeout(handler);\n    };\n  }, [value, delay]);\n\n  return debouncedValue;\n};",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "react_003",
+      "prompt": "Create a React context provider for theme toggling (dark/light mode).",
+      "expected": "Context with provider and useContext consumer",
+      "generated": "Here is a simple example of how you can create a React context provider for theme toggling (dark/light mode):\n\n```jsx\nimport React, { createContext, useState, useMemo } from 'react';\n\n// Create Context\nexport const ThemeContext = createContext();\n\n// Create Provider Component\nexport const ThemeProvider = ({ children }) => {\n  // Create state for theme\n  const [theme, setTheme] = useState('light');\n\n  // Memoize the value to avoid unnecessary re-renders\n  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);\n\n  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;\n}\n```\n\nYou can use this provider in your app like this:\n\n```jsx\nimport React from 'react';\nimport { ThemeProvider } from './themeContext';\n\nfunction App() {\n  return (\n    <ThemeProvider>\n      {/* Your app components */}\n    </ThemeProvider>\n  );\n}\n\nexport default App;\n```\n\nThen, you can consume the theme context in your components like this:\n\n```jsx\nimport React, { useContext } from 'react';\nimport { ThemeContext } from './themeContext';\n\nfunction SomeComponent() {\n  const { theme, setTheme } = useContext(ThemeContext);\n\n  return (\n    <div>\n      <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>\n        Toggle {theme} mode\n      </button>\n    </div>\n  );\n}\n\nexport default SomeComponent;\n```\n",
+      "extracted_code": "jsx\nimport React, { createContext, useState, useMemo } from 'react';\n\n// Create Context\nexport const ThemeContext = createContext();\n\n// Create Provider Component\nexport const ThemeProvider = ({ children }) => {\n  // Create state for theme\n  const [theme, setTheme] = useState('light');\n\n  // Memoize the value to avoid unnecessary re-renders\n  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);\n\n  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;\n}",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "react_004",
+      "prompt": "Write a React form with validation using controlled components.",
+      "expected": "Form with state management and error display",
+      "generated": "Here is a simple example of a React form with validation using controlled components:\n\n```jsx\nimport React, { useState } from 'react';\n\nconst MyForm = () => {\n  const [input, setInput] = useState({\n    username: '',\n    email: '',\n    password: ''\n  });\n\n  const [error, setError] = useState({});\n\n  const handleInputChange = (e) => {\n    setInput({ ...input, [e.target.name]: e.target.value });\n  };\n\n  const validate = () => {\n    let errors = {};\n    if (!input.username) {\n      errors.username = \"Username can't be empty\";\n    }\n    if (!input.email) {\n      errors.email = \"Email can't be empty\";\n    } else if (!/\\S+@\\S+\\.\\S+/.test(input.email)) {\n      errors.email = \"Email is not valid\";\n    }\n    if (!input.password) {\n      errors.password = \"Password can't be empty\";\n    } else if (input.password.length < 8) {\n      errors.password = \"Password needs to be at least 8 characters\";\n    }\n    setError(errors);\n    return Object.keys(errors).length === 0;\n  };\n\n  const handleSubmit = (e) => {\n    e.preventDefault();\n    if (validate()) {\n      console.log('Form submitted with', input);\n    }\n  };\n\n  return (\n    <form onSubmit={handleSubmit}>\n      <label>\n        Username:\n        <input type=\"text\" name=\"username\" value={input.username} onChange={handleInputChange} />\n        <p>{error.username}</p>\n      </label>\n      <label>\n        Email:\n        <input type=\"text\" name=\"email\" value={input.email} onChange={handleInputChange} />\n        <p>{error.email}</p>\n      </label>\n      <label>\n        Password:\n        <input type=\"password\" name=\"password\" value={input",
+      "extracted_code": "jsx\nimport React, { useState } from 'react';\n\nconst MyForm = () => {\n  const [input, setInput] = useState({\n    username: '',\n    email: '',\n    password: ''\n  });\n\n  const [error, setError] = useState({});\n\n  const handleInputChange = (e) => {\n    setInput({ ...input, [e.target.name]: e.target.value });\n  };\n\n  const validate = () => {\n    let errors = {};\n    if (!input.username) {\n      errors.username = \"Username can't be empty\";\n    }\n    if (!input.email) {\n      errors.email = \"Email can't be empty\";\n    } else if (!/\\S+@\\S+\\.\\S+/.test(input.email)) {\n      errors.email = \"Email is not valid\";\n    }\n    if (!input.password) {\n      errors.password = \"Password can't be empty\";\n    } else if (input.password.length < 8) {\n      errors.password = \"Password needs to be at least 8 characters\";\n    }\n    setError(errors);\n    return Object.keys(errors).length === 0;\n  };\n\n  const handleSubmit = (e) => {\n    e.preventDefault();\n    if (validate()) {\n      console.log('Form submitted with', input);\n    }\n  };\n\n  return (\n    <form onSubmit={handleSubmit}>\n      <label>\n        Username:\n        <input type=\"text\" name=\"username\" value={input.username} onChange={handleInputChange} />\n        <p>{error.username}</p>\n      </label>\n      <label>\n        Email:\n        <input type=\"text\" name=\"email\" value={input.email} onChange={handleInputChange} />\n        <p>{error.email}</p>\n      </label>\n      <label>\n        Password:\n        <input type=\"password\" name=\"password\" value={input",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "react_005",
+      "prompt": "Create a React component that implements infinite scroll.",
+      "expected": "Intersection Observer or scroll event based pagination",
+      "generated": "Here is a simple example of a React component that implements infinite scroll:\n\n```jsx\nimport React, { Component } from 'react';\n\nclass InfiniteScroll extends Component {\n  constructor(props) {\n    super(props);\n    this.state = {\n      items: [],\n      page: 0,\n    };\n    this.onScroll = this.onScroll.bind(this);\n  }\n\n  componentDidMount() {\n    window.addEventListener('scroll', this.onScroll, false);\n    this.loadItems();\n  }\n\n  componentWillUnmount() {\n    window.removeEventListener('scroll', this.onScroll, false);\n  }\n\n  onScroll() {\n    if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || this.state.page === 10) {\n      return;\n    }\n    this.loadItems();\n  }\n\n  loadItems() {\n    const newPage = this.state.page + 1;\n    fetch(`https://api.example.com/items?page=${newPage}`)\n      .then(res => res.json())\n      .then(items => {\n        this.setState(prevState => ({\n          items: [...prevState.items, ...items],\n          page: newPage,\n        }));\n      });\n  }\n\n  render() {\n    return (\n      <div>\n        {this.state.items.map(item => (\n          <div key={item.id}>{item.name}</div>\n        ))}\n      </div>\n    );\n  }\n}\n\nexport default InfiniteScroll;\n```\n\nThis component will fetch items from an API when the user scrolls down to the bottom of the page. The API should support pagination, and the page number should be incremented with each new request. The items are stored in the component's state, and they are rendered in the render method.\n\nPlease replace `https://api.example.com/items?page=${newPage}` with your own API endpoint.\n",
+      "extracted_code": "jsx\nimport React, { Component } from 'react';\n\nclass InfiniteScroll extends Component {\n  constructor(props) {\n    super(props);\n    this.state = {\n      items: [],\n      page: 0,\n    };\n    this.onScroll = this.onScroll.bind(this);\n  }\n\n  componentDidMount() {\n    window.addEventListener('scroll', this.onScroll, false);\n    this.loadItems();\n  }\n\n  componentWillUnmount() {\n    window.removeEventListener('scroll', this.onScroll, false);\n  }\n\n  onScroll() {\n    if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || this.state.page === 10) {\n      return;\n    }\n    this.loadItems();\n  }\n\n  loadItems() {\n    const newPage = this.state.page + 1;\n    fetch(`https://api.example.com/items?page=${newPage}`)\n      .then(res => res.json())\n      .then(items => {\n        this.setState(prevState => ({\n          items: [...prevState.items, ...items],\n          page: newPage,\n        }));\n      });\n  }\n\n  render() {\n    return (\n      <div>\n        {this.state.items.map(item => (\n          <div key={item.id}>{item.name}</div>\n        ))}\n      </div>\n    );\n  }\n}\n\nexport default InfiniteScroll;",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    }
+  ],
+  "sql": [
+    {
+      "id": "sql_001",
+      "prompt": "Write a SQL query to find the second highest salary from an employees table.",
+      "expected": "Subquery or window function approach",
+      "generated": "Assuming the employees table has a column named \"salary\", the SQL query would be:\n\n```sql\nSELECT MAX(salary) as SecondHighestSalary\nFROM employees\nWHERE salary < (SELECT MAX(salary) FROM employees)\n```\n",
+      "extracted_code": "sql\nSELECT MAX(salary) as SecondHighestSalary\nFROM employees\nWHERE salary < (SELECT MAX(salary) FROM employees)",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "sql_002",
+      "prompt": "Write a SQL query to find duplicate email addresses in a users table.",
+      "expected": "GROUP BY with HAVING COUNT > 1",
+      "generated": "SELECT email, COUNT(*) as count\nFROM users\nGROUP BY email\nHAVING COUNT(*) > 1;\n",
+      "extracted_code": "SELECT email, COUNT(*) as count\nFROM users\nGROUP BY email\nHAVING COUNT(*) > 1;",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: Invalid star expression on line 1"
+    },
+    {
+      "id": "sql_003",
+      "prompt": "Write a PostgreSQL query to create a table with a JSONB column and query nested fields.",
+      "expected": "CREATE TABLE with JSONB and -> / ->> operators",
+      "generated": "Sure, here is an example of how you can create a table with a JSONB column and query nested fields:\n\n```sql\nCREATE TABLE my_table (\n    id SERIAL PRIMARY KEY,\n    data JSONB NOT NULL\n);\n```\n\nThen you can insert some data:\n\n```sql\nINSERT INTO my_table (data) VALUES ('{\"name\": \"John\", \"age\": 30, \"address\": {\"city\": \"New York\", \"country\": \"USA\"}}');\n```\n\nNow you can query nested fields like this:\n\n```sql\nSELECT (data->'address'->>'city') AS city FROM my_table;\n```\n\nThis will return the city \"New York\".\n",
+      "extracted_code": "sql\nCREATE TABLE my_table (\n    id SERIAL PRIMARY KEY,\n    data JSONB NOT NULL\n);",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    },
+    {
+      "id": "sql_004",
+      "prompt": "Write a SQL query using window functions to calculate a running total of sales by date.",
+      "expected": "SUM() OVER (ORDER BY date) window function",
+      "generated": "Assuming you have a table named \"sales\" with columns \"date\" and \"sales_amount\", you can use the following SQL query:\n\n```sql\nSELECT \n    date, \n    sales_amount, \n    SUM(sales_amount) OVER (ORDER BY date) as running_total\nFROM \n    sales\nORDER BY \n    date;\n```\n\nThis query will return a table with the date, sales amount, and a running total of sales amount. The running total is calculated by summing the sales amount for each row in the table, ordered by the date.\n",
+      "extracted_code": "sql\nSELECT \n    date, \n    sales_amount, \n    SUM(sales_amount) OVER (ORDER BY date) as running_total\nFROM \n    sales\nORDER BY \n    date;",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: unexpected indent on line 3"
+    },
+    {
+      "id": "sql_005",
+      "prompt": "Write a SQL migration to add a column with a default value without locking the table.",
+      "expected": "ALTER TABLE ADD COLUMN with DEFAULT (PostgreSQL concurrent approach)",
+      "generated": "Here is an example of how you can add a column with a default value without locking the table:\n\n```sql\nALTER TABLE your_table ADD COLUMN new_column INT DEFAULT 0;\n```\n\nThis command will add a new column named `new_column` to the table `your_table`, and it will set the default value of this column to `0`.\n\nPlease replace `your_table` and `new_column` with your actual table name and column name.\n",
+      "extracted_code": "sql\nALTER TABLE your_table ADD COLUMN new_column INT DEFAULT 0;",
+      "syntax_valid": false,
+      "syntax_message": "Syntax Error: invalid syntax on line 2"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+[
+    {
+        "id": "sql_001",
+        "prompt": "Write a SQL query to find the second highest salary from an employees table.",
+        "expected": "Subquery or window function approach"
+    },
+    {
+        "id": "sql_002",
+        "prompt": "Write a SQL query to find duplicate email addresses in a users table.",
+        "expected": "GROUP BY with HAVING COUNT > 1"
+    },
+    {
+        "id": "sql_003",
+        "prompt": "Write a PostgreSQL query to create a table with a JSONB column and query nested fields.",
+        "expected": "CREATE TABLE with JSONB and -> / ->> operators"
+    },
+    {
+        "id": "sql_004",
+        "prompt": "Write a SQL query using window functions to calculate a running total of sales by date.",
+        "expected": "SUM() OVER (ORDER BY date) window function"
+    },
+    {
+        "id": "sql_005",
+        "prompt": "Write a SQL migration to add a column with a default value without locking the table.",
+        "expected": "ALTER TABLE ADD COLUMN with DEFAULT (PostgreSQL concurrent approach)"
+    }
+]
