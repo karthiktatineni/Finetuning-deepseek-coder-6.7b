@@ -1,0 +1,59 @@
+# Model Configuration
+model:
+  # Base model name or path
+  base_model: "deepseek-ai/deepseek-coder-6.7b-instruct"
+  
+  # Model revision
+  model_revision: "main"
+  
+  # Trust remote code
+  trust_remote_code: true
+  
+  # Use cache
+  use_cache: true
+
+# Quantization Configuration
+quantization:
+  # Load in 4-bit
+  load_in_4bit: true
+  
+  # Load in 8-bit
+  load_in_8bit: false
+  
+  # BNB config
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+# Sequence Configuration
+sequence:
+  # Maximum sequence length
+  max_seq_length: 4096
+  
+  # Context window size
+  context_window: 4096
+
+# Special Tokens
+special_tokens:
+  # Pad token
+  pad_token: "<|pad|>"
+  
+  # EOS token
+  eos_token: "<|end_of_sentence|>"
+  
+  # BOS token
+  bos_token: "<|start_of_sentence|>"
+  
+  # Add special tokens
+  add_special_tokens: false
+
+# Model Loading Configuration
+loading:
+  # Device Map (auto, balanced_low_0, sequential)
+  device_map: "auto"
+  
+  # Torch dtype
+  torch_dtype: "bfloat16"
+  
+  # Low CPU memory usage
+  low_cpu_mem_usage: true

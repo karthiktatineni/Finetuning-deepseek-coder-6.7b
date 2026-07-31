@@ -1,0 +1,94 @@
+# Training Configuration
+training:
+  # Number of training epochs
+  num_train_epochs: 3
+  
+  # Learning rate
+  learning_rate: 2.0e-4
+  
+  # Warmup steps
+  warmup_steps: 100
+  
+  # Logging frequency (steps)
+  logging_steps: 10
+  
+  # Save frequency (steps)
+  save_steps: 500
+  
+  # Evaluation frequency (steps)
+  eval_steps: 500
+  
+  # Maximum training steps (0 = train all epochs)
+  max_steps: 0
+  
+  # Gradient checkpointing (enables memory efficiency)
+  gradient_checkpointing: true
+  
+  # Gradient accumulation steps
+  gradient_accumulation_steps: 1
+  
+  # Per device batch size
+  per_device_train_batch_size: 4
+  
+  # Per device eval batch size  
+  per_device_eval_batch_size: 4
+  
+  # Number of dataloader workers
+  dataloader_num_workers: 4
+  
+  # Max gradient norm for clipping
+  max_grad_norm: 1.0
+  
+  # Weight decay
+  weight_decay: 0.01
+  
+  # Optimizer type
+  optim: "paged_adamw_8bit"
+  
+  # Scheduler type
+  lr_scheduler_type: "cosine"
+  
+  # Precision (fp16, bf16, or no)
+  fp16: false
+  bf16: true
+  
+  # Disable TQDM
+  disable_tqdm: false
+  
+  # Load best model
+  load_best_model_at_end: true
+  
+  # Metric for best model
+  metric_for_best_model: "eval_loss"
+  
+  # Greater is better
+  greater_is_better: false
+  
+  # Save total limit
+  save_total_limit: 3
+  
+  # Report to
+  report_to: ["tensorboard", "wandb"]
+  
+  # Seed
+  seed: 42
+
+# LoRA Configuration
+lora:
+  # LoRA rank
+  r: 16
+  
+  # LoRA alpha
+  lora_alpha: 32
+  
+  # LoRA dropout
+  lora_dropout: 0.05
+  
+  # Target modules
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+  
+  # Bias (none, all, lora_only)
+  bias: "none"
+  
+  # Task type
+  task_type: "CAUSAL_LM"

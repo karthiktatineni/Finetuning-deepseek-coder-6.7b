@@ -1,0 +1,50 @@
+# Core ML/LLM Libraries
+torch>=2.0.0
+transformers>=4.36.0
+peft>=0.7.0
+bitsandbytes>=0.41.0
+accelerate>=0.25.0
+datasets>=2.15.0
+trl>=0.7.0
+
+# Quantization Support
+bitsandbytes>=0.41.0
+einops>=0.7.0
+
+# Flash Attention Attention
+flash-attn>=2.3.0
+
+# Monitoring and Logging
+tensorboard>=2.15.0
+wandb>=0.16.0
+tqdm>=4.66.0
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+
+# Configuration Management
+pyyaml>=6.0
+toml>=0.10.2
+python-dotenv>=1.0.0
+
+# Utils
+jsonlines>=4.0.0
+requests>=2.31.0
+aiohttp>=3.9.0
+
+# GPU Monitoring
+psutil>=5.9.0
+nvidia-ml-py>=12.535.0
+
+# Optional: Cloud SDKs (uncomment if needed)
+# boto3>=1.34.0  # AWS
+# google-cloud-storage>=2.10.0  # GCP
+# azure-storage-blob>=12.19.0  # Azure
+
+# Development Tools (optional)
+# pytest>=7.4.0
+# black>=23.12.0
+# flake8>=6.1.0
+# mypy>=1.7.0

@@ -1,0 +1,82 @@
+# Dataset Configuration
+datasets:
+  # List of datasets to download and process
+  sources:
+    - name: "opencoder_stage1"
+      url: "https://huggingface.co/datasets/m-a-p/OpenCoder/resolve/main/stage1/train.parquet"
+      format: "parquet"
+      instruction_field: "instruction"
+      response_field: "response"
+  
+    - name: "codealpaca" 
+      url: "https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k/resolve/main/data/train.json"
+      format: "json"
+      instruction_field: "instruction"
+      response_field: "output"
+  
+    - name: "classeval"
+      url: "https://huggingface.co/datasets/FSoft-AI/ClassEval/resolve/main/data/train.json"
+      format: "json"
+      instruction_field: "instruction"
+      response_field: "response"
+  
+    - name: "apps"
+      url: "https://huggingface.co/datasets/codeparrot/apps/resolve/main/data/train.json"
+      format: "json"
+      instruction_field: "question"
+      response_field: "solutions"
+
+  # Dataset merging configuration
+  merging:
+    # Merge strategy: "concat", "sample", "weighted"
+    strategy: "concat"
+    
+    # Sample per dataset (for sampling strategy)
+    samples_per_dataset: 50000
+    
+    # Weights for weighted sampling
+    weights:
+      opencoder_stage1: 1.0
+      codealpaca: 0.8
+      classeval: 0.6
+      apps: 0.5
+
+# Preprocessing configuration  
+preprocessing:
+  # Max samples per dataset for testing (0 = all samples)
+  max_samples: 0
+  
+  # Shuffle dataset after merge
+  shuffle: true
+  
+  # Random seed for shuffling
+  seed: 42
+  
+  # Train/validation split
+  train_split: 0.95
+  
+  # Text normalization
+  normalize_text: true
+  
+  # Remove duplicates
+  remove_duplicates: true
+  
+  # Max length percentage warning
+  max_length_warning_threshold: 0.95
+
+# Tokenization configuration
+tokenization:
+  # Max sequence length
+  max_seq_length: 4096
+  
+  # Truncation strategy
+  truncation: true
+  
+  # Padding strategy
+  padding: "max_length"
+  
+  # Return attention mask
+  return_attention_mask: true
+  
+  # Return token type ids
+  return_token_type_ids: false

@@ -1,0 +1,123 @@
+# Cloud Configuration (A100/H100)
+cloud:
+  # Device type
+  device: "cuda"
+  
+  # Number of GPUs
+  num_gpus: 1
+  
+  # GPU type (A100_40GB, A100_80GB, H100)
+  gpu_type: "T4"
+  
+  # Available VRAM per GPU in GB
+  available_vram: 16
+  
+  # Total system memory in GB
+  system_memory: 120
+
+# Performance Configuration
+performance:
+  # Use flash attention 2
+  use_flash_attention: true
+  
+  # Use gradient checkpointing
+  use_gradient_checkpointing: true
+  
+  # Use mixed precision
+  use_mixed_precision: true
+  
+  # Precision type (fp16, bf16)
+  precision: "bf16"
+  
+  # Optimize for throughput
+  optimize_for_throughput: true
+
+# IO Configuration
+io:
+  # Cache directory
+  cache_dir: "./cache"
+  
+  # Output directory
+  output_dir: "./outputs"
+  
+  # Adapter directory
+  adapter_dir: "./adapters"
+  
+  # Checkpoint directory
+  checkpoint_dir: "./checkpoints"
+  
+  # Log directory
+  log_dir: "./logs"
+  
+  # Dataset directories
+  dataset_dir:
+    raw: "./datasets/raw"
+    processed: "./datasets/processed"
+    merged: "./datasets/merged"
+    tokenized: "./datasets/tokenized"
+
+# Monitoring Configuration
+monitoring:
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+  
+  # Enable memory monitoring
+  enable_memory_monitoring: true
+  
+  # Logging interval (seconds)
+  log_interval: 60
+  
+  # Save metrics as JSON
+  save_json: true
+  
+  # Save metrics as CSV
+  save_csv: true
+  
+  # WandB project
+  wandb_project: "deepseek-finetuning"
+  
+  # Tensorboard
+  tensorboard: true
+
+# Resume Configuration
+resume:
+  # Auto-resume from latest checkpoint
+  auto_resume: true
+  
+  # Resume checkpoint path (empty = auto-discover)
+  checkpoint_path: ""
+  
+  # Resume with optimizer state
+  resume_optimizer: true
+  
+  # Resume with scheduler state
+  resume_scheduler: true
+  
+  # Resume with RNG state
+  resume_rng: true
+
+# Validation Configuration
+validation:
+  # Validate before training
+  validate_before_training: true
+  
+  # Check CUDA availability
+  check_cuda: true
+  
+  # Check VRAM availability
+  check_vram: true
+  
+  # Check disk space (GB minimum)
+  min_disk_space: 50
+  
+  # Check model existence
+  check_model: true
+  
+  # Check tokenizer existence
+  check_tokenizer: true
+  
+  # Check dataset existence
+  check_dataset: true
+  
+  # Check dependencies
+  check_dependencies: true
