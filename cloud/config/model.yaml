@@ -28,10 +28,10 @@ quantization:
 # Sequence Configuration
 sequence:
   # Maximum sequence length
-  max_seq_length: 4096
+  max_seq_length: 1024
   
   # Context window size
-  context_window: 4096
+  context_window: 1024
 
 # Special Tokens
 special_tokens:

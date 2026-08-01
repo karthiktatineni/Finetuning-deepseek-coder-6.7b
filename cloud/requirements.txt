@@ -6,13 +6,14 @@ bitsandbytes>=0.41.0
 accelerate>=0.25.0
 datasets>=2.15.0
 trl>=0.7.0
+scipy>=1.10.0
 
 # Quantization Support
-bitsandbytes>=0.41.0
 einops>=0.7.0
 
-# Flash Attention Attention
-flash-attn>=2.3.0
+# Flash Attention - SKIP FOR NOW due to build issues
+# The pipeline works without flash-attention (just slower)
+# Try installing separately if needed: pip install flash-attn --no-build-isolation
 
 # Monitoring and Logging
 tensorboard>=2.15.0

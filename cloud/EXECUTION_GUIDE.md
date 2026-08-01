@@ -34,10 +34,12 @@ python scripts/verify_dataset.py --dataset datasets/raw/[your_dataset_file] --in
 ### 4. Data Preprocessing
 ```bash
 # Preprocess each downloaded dataset individually
-python preprocessing/preprocess.py --config config/cloud.yaml --input datasets/raw/opencoder_stage1.parquet
-python preprocessing/preprocess.py --config config/cloud.yaml --input datasets/raw/codealpaca.json
-python preprocessing/preprocess.py --config config/cloud.yaml --input datasets/raw/classeval.json
-python preprocessing/preprocess.py --config config/cloud.yaml --input datasets/raw/apps.json
+python preprocessing/preprocess_simple.py --config config/cloud.yaml --input datasets/raw/opencoder_stage1
+python preprocessing/preprocess_simple.py --config config/cloud.yaml --input datasets/raw/opencoder_stage2
+python preprocessing/preprocess_simple.py --config config/cloud.yaml --input datasets/raw/codealpaca
+python preprocessing/preprocess_simple.py --config config/cloud.yaml --input datasets/raw/apps
+python preprocessing/preprocess_simple.py --config config/cloud.yaml --input datasets/raw/codesearchnet
+# Note: classeval is eval-only and should not be preprocessed for training
 ```
 
 ### 5. Dataset Merging
@@ -250,3 +252,64 @@ python -c "import json; print(json.load(open('results/evaluation_results.json'))
 ```
 
 This execution guide ensures production-grade, reproducible fine-tuning from start to finish.
+
+
+
+
+
+next stages
+
+
+
+Here are the exact **Bash commands** for your SSH Linux cloud environment:
+
+---
+
+### ⚡ Option 1: Run Stage 2 & Stage 3 Automatically (Bash Script)
+
+Run this single command in your Linux SSH terminal:
+
+```bash
+chmod +x run_pipeline.sh && ./run_pipeline.sh
+```
+
+---
+
+### 📌 Option 2: Run Each Stage Manually in Bash
+
+#### 🔹 STAGE 2 (Samples 100,000 $\rightarrow$ 300,000):
+```bash
+WANDB_MODE=disabled python training/train_continual.py \
+  --config config/cloud_full.yaml \
+  --adapter-path outputs/deepskip_tokenization/final_adapter \
+  --skip-samples 100000 \
+  --num-samples 200000 \
+  --batch-size 2 \
+  --grad-accum 2 \
+  --max-steps 1000 \
+  --output-name deepseek_stage2_300k
+```
+
+---
+
+#### 🔹 STAGE 3 (Samples 300,000 $\rightarrow$ 500,000):
+```bash
+WANDB_MODE=disabled python training/train_continual.py \
+  --config config/cloud_full.yaml \
+  --adapter-path outputs/deepseek_stage2_300k/final_continual_adapter \
+  --skip-samples 300000 \
+  --num-samples 200000 \
+  --batch-size 2 \
+  --grad-accum 2 \
+  --max-steps 1000 \
+  --output-name deepseek_stage3_500k_final
+```
+
+---
+
+### 📥 Download Final 500k Adapter to your local PC:
+After Stage 3 finishes, run this command from your **local PC terminal**:
+
+```bash
+scp -r user@<CLOUD_IP>:/path/to/Finetuning-deepseek-coder-6.7b/cloud/outputs/deepseek_stage3_500k_final/final_continual_adapter ./adapters/
+```

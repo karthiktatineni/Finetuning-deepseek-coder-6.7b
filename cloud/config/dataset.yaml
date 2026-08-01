@@ -1,45 +1,85 @@
 # Dataset Configuration
 datasets:
   # List of datasets to download and process
+  # Based on actual downloaded datasets in cloud/datasets/raw/
   sources:
     - name: "opencoder_stage1"
-      url: "https://huggingface.co/datasets/m-a-p/OpenCoder/resolve/main/stage1/train.parquet"
-      format: "parquet"
+      format: "huggingface"
       instruction_field: "instruction"
-      response_field: "response"
+      response_field: "output"
+      max_samples: 400000  # 400k samples max
+      priority: 1
   
-    - name: "codealpaca" 
-      url: "https://huggingface.co/datasets/sahil2801/CodeAlpaca-20k/resolve/main/data/train.json"
+    - name: "opencoder_stage2"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 400000  # 400k samples max
+      priority: 2
+  
+    - name: "codealpaca"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 0  # Use remaining to reach 850k total
+      priority: 3
+  
+    - name: "apps"
+      format: "huggingface"
+      instruction_field: "question"
+      response_field: "solutions"
+      max_samples: 0  # Process all samples
+      priority: 4
+  
+    - name: "codesearchnet"
+      format: "huggingface"
+      instruction_field: "func_documentation_string"
+      response_field: "code"
+      max_samples: 0  # Process all samples
+      priority: 5
+  
+    - name: "alpaca_data_cleaned.json"
       format: "json"
       instruction_field: "instruction"
       response_field: "output"
+      max_samples: 0  # Process all samples
+      priority: 6
   
-    - name: "classeval"
-      url: "https://huggingface.co/datasets/FSoft-AI/ClassEval/resolve/main/data/train.json"
+    - name: "code_alpaca_20k.json"
       format: "json"
       instruction_field: "instruction"
-      response_field: "response"
+      response_field: "output"
+      max_samples: 0  # Process all samples
+      priority: 7
   
-    - name: "apps"
-      url: "https://huggingface.co/datasets/codeparrot/apps/resolve/main/data/train.json"
-      format: "json"
-      instruction_field: "question"
-      response_field: "solutions"
+    - name: "classeval"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "code"
+      max_samples: 0  # Process all samples
+      priority: 8
+      eval_only: true  # Evaluation only, not for training
 
   # Dataset merging configuration
   merging:
     # Merge strategy: "concat", "sample", "weighted"
     strategy: "concat"
     
-    # Sample per dataset (for sampling strategy)
-    samples_per_dataset: 50000
+    # Maximum samples to prevent OOM (set to 0 for unlimited)
+    max_samples: 850000  # Total training samples: 400k + 400k + 50k = 850k
     
-    # Weights for weighted sampling
+    # Target total samples
+    target_total_samples: 850000  # Use exactly 850k samples
+    
+    # Weights for weighted sampling (prioritize coding quality)
     weights:
-      opencoder_stage1: 1.0
-      codealpaca: 0.8
-      classeval: 0.6
-      apps: 0.5
+      opencoder_stage1: 2.0      # Highest quality pre-training data (400k target)
+      opencoder_stage2: 2.5      # Highest quality fine-tuning data (400k target)
+      codealpaca: 1.2           # Pure coding instructions (rest to reach 850k)
+      apps: 1.3                 # Competitive programming
+      codesearchnet: 1.1        # Code-documentation pairs
+      alpaca_data_cleaned.json: 1.0  # General instructions
+      code_alpaca_20k.json: 1.4      # Pure coding instructions
 
 # Preprocessing configuration  
 preprocessing:

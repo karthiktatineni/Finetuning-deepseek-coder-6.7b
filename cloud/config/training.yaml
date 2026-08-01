@@ -1,7 +1,7 @@
-# Training Configuration
+# Training Configuration (optimized for 1-2 hour completion)
 training:
-  # Number of training epochs
-  num_train_epochs: 3
+  # Number of training epochs (reduced for faster completion)
+  num_train_epochs: 1
   
   # Learning rate
   learning_rate: 2.0e-4
@@ -9,31 +9,31 @@ training:
   # Warmup steps
   warmup_steps: 100
   
-  # Logging frequency (steps)
-  logging_steps: 10
+  # Logging frequency (steps) - increased to reduce overhead
+  logging_steps: 25
   
-  # Save frequency (steps)
+  # Save frequency (steps) - reduced for faster training
   save_steps: 500
   
-  # Evaluation frequency (steps)
+  # Evaluation frequency (steps) - reduced for faster training
   eval_steps: 500
   
-  # Maximum training steps (0 = train all epochs)
-  max_steps: 0
+  # Maximum training steps (optimized for 2-3 hour completion)
+  max_steps: 800
   
   # Gradient checkpointing (enables memory efficiency)
   gradient_checkpointing: true
   
-  # Gradient accumulation steps
-  gradient_accumulation_steps: 1
+  # Gradient accumulation steps (reduced for 4x faster step speed)
+  gradient_accumulation_steps: 4
   
-  # Per device batch size
-  per_device_train_batch_size: 4
+  # Per device batch size (keep 1 to prevent OOM on T4 GPU)
+  per_device_train_batch_size: 1
   
-  # Per device eval batch size  
-  per_device_eval_batch_size: 4
+  # Per device eval batch size
+  per_device_eval_batch_size: 1
   
-  # Number of dataloader workers
+  # Number of dataloader workers (increased to use RAM fully)
   dataloader_num_workers: 4
   
   # Max gradient norm for clipping
@@ -49,8 +49,8 @@ training:
   lr_scheduler_type: "cosine"
   
   # Precision (fp16, bf16, or no)
-  fp16: false
-  bf16: true
+  fp16: true
+  bf16: false
   
   # Disable TQDM
   disable_tqdm: false

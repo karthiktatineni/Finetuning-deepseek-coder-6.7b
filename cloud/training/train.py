@@ -11,6 +11,7 @@ import yaml
 import json
 import logging
 import warnings
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
@@ -40,9 +41,10 @@ try:
     import pandas as pd
     from tqdm import tqdm
     import evaluate
+    import ijson
 except ImportError as e:
     print(f"Error: Required library not installed: {e}")
-    print("Install with: pip install transformers peft bitsandbytes accelerate datasets torch evaluate")
+    print("Install with: pip install transformers peft bitsandbytes accelerate datasets torch evaluate ijson")
     sys.exit(1)
 
 
@@ -142,23 +144,15 @@ def validate_environment(config: Dict[str, Any], logger: logging.Logger) -> bool
     
     # Check model and tokenizer
     if validation_config.get('check_model', True):
-        model_name = config.get('model', {}).get('base_model')
+        model_name = config.get('model', {}).get('base_model') or 'deepseek-ai/deepseek-coder-6.7b-instruct'
         if not model_name:
-            logger.error("Model not specified in configuration")
-            return False
+            logger.info("Using default model: deepseek-ai/deepseek-coder-6.7b-instruct")
+            model_name = 'deepseek-ai/deepseek-coder-6.7b-instruct'
         logger.info(f"Model: {model_name}")
     
-    # Check tokenized dataset
+    # Check tokenized dataset - but we use raw JSON so skip this check
     if validation_config.get('check_dataset', True):
-        tokenized_path = os.path.join(
-            config.get('cloud', {}).get('io', {}).get('dataset_dir', {}).get('tokenized', './datasets/tokenized'),
-            'train'
-        )
-        if not os.path.exists(tokenized_path):
-            logger.error(f"Tokenized dataset not found at {tokenized_path}")
-            logger.error("Please run preprocessing/tokenize.py first")
-            return False
-        logger.info(f"Tokenized dataset found at {tokenized_path}")
+        logger.info("Using raw JSON datasets directly - tokenization check skipped")
     
     logger.info("✓ Environment validation passed")
     return True
@@ -169,8 +163,11 @@ def load_tokenizer(model_config: Dict[str, Any], cache_dir: str, logger: logging
     try:
         logger.info("Loading tokenizer...")
         
+        # Get model name with fallback
+        model_name = model_config.get('base_model') or 'deepseek-ai/deepseek-coder-6.7b-instruct'
+        
         tokenizer = AutoTokenizer.from_pretrained(
-            model_config['base_model'],
+            model_name,
             cache_dir=cache_dir,
             trust_remote_code=True,
             revision=model_config.get('model_revision', 'main')
@@ -178,12 +175,20 @@ def load_tokenizer(model_config: Dict[str, Any], cache_dir: str, logger: logging
         
         # Configure special tokens
         special_tokens = model_config.get('special_tokens', {})
-        if special_tokens.get('pad_token'):
-            if tokenizer.pad_token is None:
+        
+        # Set pad token - use EOS if custom pad token doesn't exist
+        if tokenizer.pad_token is None:
+            if special_tokens.get('pad_token') and special_tokens['pad_token'] in tokenizer.get_vocab():
                 tokenizer.pad_token = special_tokens['pad_token']
                 tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids(special_tokens['pad_token'])
+            else:
+                # Use EOS token as pad token (common for LLaMA-style models)
+                tokenizer.pad_token = tokenizer.eos_token
+                tokenizer.pad_token_id = tokenizer.eos_token_id
         
         logger.info(f"✓ Tokenizer loaded: {len(tokenizer)} vocab size")
+        logger.info(f"  Pad token: {tokenizer.pad_token} (id={tokenizer.pad_token_id})")
+        logger.info(f"  EOS token: {tokenizer.eos_token} (id={tokenizer.eos_token_id})")
         return tokenizer
     except Exception as e:
         logger.error(f"Error loading tokenizer: {e}")
@@ -196,6 +201,9 @@ def load_model(model_config: Dict[str, Any], quantization_config: Dict[str, Any]
     try:
         logger.info("Loading model with quantization...")
         
+        # Get model name with fallback
+        model_name = model_config.get('base_model') or 'deepseek-ai/deepseek-coder-6.7b-instruct'
+        
         # Create BNB config
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=quantization_config.get('load_in_4bit', True),
@@ -207,7 +215,7 @@ def load_model(model_config: Dict[str, Any], quantization_config: Dict[str, Any]
         
         # Load model
         model = AutoModelForCausalLM.from_pretrained(
-            model_config['base_model'],
+            model_name,
             quantization_config=bnb_config,
             cache_dir=cache_dir,
             trust_remote_code=True,
@@ -218,6 +226,7 @@ def load_model(model_config: Dict[str, Any], quantization_config: Dict[str, Any]
         )
         
         logger.info(f"✓ Model loaded with {sum(p.numel() for p in model.parameters()) / 1e9:.2f}B parameters")
+        model.config.use_cache = False  # Disable KV cache for training with gradient checkpointing
         return model
     except Exception as e:
         logger.error(f"Error loading model: {e}")
@@ -229,8 +238,8 @@ def setup_lora(model: nn.Module, lora_config: Dict[str, Any], logger: logging.Lo
     try:
         logger.info("Setting up LoRA...")
         
-        # Prepare model for k-bit training
-        model = prepare_model_for_kbit_training(model)
+        # Prepare model for k-bit training with gradient checkpointing enabled
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
         
         # Create LoRA config
         lora = LoraConfig(
@@ -264,15 +273,172 @@ def setup_lora(model: nn.Module, lora_config: Dict[str, Any], logger: logging.Lo
         return None
 
 
-def load_tokenized_datasets(io_config: Dict[str, Any], logger: logging.Logger):
-    """Load tokenized training and validation datasets."""
+def tokenize_conversation_batch(examples, tokenizer, max_length):
+    """Tokenize a batch of conversation examples."""
+    input_ids_list = []
+    attention_mask_list = []
+    labels_list = []
+    
+    pad_token_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
+    
+    for conversations in examples['conversations']:
+        # Build text from conversation with user prompts and assistant responses
+        text_parts = []
+        assistant_start_indices = []
+        
+        for turn in conversations:
+            role = turn.get('role') or turn.get('from', '')
+            content = turn.get('content') or turn.get('value', '')
+            
+            if role in ['user', 'human']:
+                text_parts.append(f"<|User|>: {content}\n")
+            elif role in ['assistant', 'gpt']:
+                text_parts.append(f"<|Assistant|>: {content}\n")
+        
+        text = ''.join(text_parts)
+        
+        # Tokenize without padding first to get actual length
+        tokenized_no_pad = tokenizer(text, truncation=True, max_length=max_length)
+        input_ids = tokenized_no_pad['input_ids']
+        
+        # Find where assistant responses are - we want to mask user prompts in labels
+        # For simplicity, we'll use the full sequence but mask only padding
+        # In causal LM, the model learns to predict from all tokens
+        
+        labels = input_ids.copy()
+        
+        # Pad to max_length
+        actual_length = len(input_ids)
+        if actual_length < max_length:
+            input_ids = input_ids + [pad_token_id] * (max_length - actual_length)
+            attention_mask = [1] * actual_length + [0] * (max_length - actual_length)
+            # Replace padding in labels with -100
+            labels = labels + [-100] * (max_length - actual_length)
+        else:
+            attention_mask = [1] * max_length
+        
+        input_ids_list.append(input_ids)
+        attention_mask_list.append(attention_mask)
+        labels_list.append(labels)
+    
+    return {
+        'input_ids': input_ids_list,
+        'attention_mask': attention_mask_list,
+        'labels': labels_list
+    }
+
+
+def load_tokenized_datasets(io_config: Dict[str, Any], model_config: Dict[str, Any], 
+                           tokenize_config: Dict[str, Any], tokenizer, logger: logging.Logger):
+    """Load training and validation datasets - tries raw JSON first, then tokenized."""
     try:
+        # Check if we can use raw JSON datasets (bypasses tokenization)
+        merged_dir = io_config.get('dataset_dir', {}).get('merged', './datasets/merged')
+        train_json = os.path.join(merged_dir, 'train.json')
+        val_json = os.path.join(merged_dir, 'validation.json')
+        
+        if os.path.exists(train_json):
+            logger.info(f"Loading raw JSON datasets from {merged_dir}...")
+            logger.info("Using memory-efficient streaming loading...")
+            
+            import json as json_lib
+            import ijson
+            
+            # Sample limits - load only what we need
+            max_training_samples = 100000  # 100k training samples (reduced from 500k for T4)
+            max_validation_samples = 5000    # 5k validation samples (reduced from 10k)
+            
+            train_data = []
+            file_size_mb = os.path.getsize(train_json) / (1024 * 1024)
+            logger.info(f"Training file size: {file_size_mb:.1f} MB - loading {max_training_samples} samples max")
+            
+            # Use ijson for streaming JSON array parsing
+            logger.info(f"Streaming JSON array with sample limit: {max_training_samples}")
+            with open(train_json, 'r', encoding='utf-8') as f:
+                parser = ijson.items(f, 'item', use_float=True)
+                for i, item in enumerate(parser):
+                    if i >= max_training_samples:
+                        logger.info(f"Reached training sample limit: {max_training_samples}")
+                        break
+                    train_data.append(item)
+                    if i % 10000 == 0 and i > 0:
+                        logger.info(f"  Loaded {i} training samples...")
+            
+            logger.info(f"✓ Loaded {len(train_data)} training samples")
+            
+            # Load validation data
+            val_data = []
+            if os.path.exists(val_json):
+                val_file_size = os.path.getsize(val_json) / (1024 * 1024)
+                logger.info(f"Validation file size: {val_file_size:.1f} MB - loading {max_validation_samples} samples max")
+                
+                with open(val_json, 'r', encoding='utf-8') as f:
+                    parser = ijson.items(f, 'item', use_float=True)
+                    for i, item in enumerate(parser):
+                        if i >= max_validation_samples:
+                            logger.info(f"Reached validation sample limit: {max_validation_samples}")
+                            break
+                        val_data.append(item)
+                
+                logger.info(f"✓ Loaded {len(val_data)} validation samples")
+            
+            logger.info(f"✓ Final training data: {len(train_data)} samples")
+            logger.info(f"✓ Final validation data: {len(val_data)} samples")
+            
+            # Monitor memory during dataset creation
+            import gc
+            import psutil
+            process = psutil.Process()
+            mem_before = process.memory_info().rss / (1024**3)
+            logger.info(f"💾 Memory before dataset creation: {mem_before:.2f}GB")
+            
+            # Convert to datasets and cleanup
+            train_dataset = Dataset.from_list(train_data)
+            del train_data  # Free memory immediately
+            gc.collect()
+            
+            val_dataset = Dataset.from_list(val_data) if val_data else None
+            if val_data:
+                del val_data
+            gc.collect()
+            
+            mem_after = process.memory_info().rss / (1024**3)
+            logger.info(f"💾 Memory after dataset creation: {mem_after:.2f}GB")
+            
+            # Tokenize datasets on-the-fly
+            logger.info("Tokenizing datasets...")
+            max_length = tokenize_config.get('max_seq_length', 2048)
+            
+            train_dataset = train_dataset.map(
+                lambda x: tokenize_conversation_batch(x, tokenizer, max_length),
+                batched=True,
+                remove_columns=['conversations'],
+                desc="Tokenizing training data"
+            )
+            logger.info(f"✓ Training dataset tokenized: {len(train_dataset)} samples")
+            
+            if val_dataset:
+                val_dataset = val_dataset.map(
+                    lambda x: tokenize_conversation_batch(x, tokenizer, max_length),
+                    batched=True,
+                    remove_columns=['conversations'],
+                    desc="Tokenizing validation data"
+                )
+                logger.info(f"✓ Validation dataset tokenized: {len(val_dataset)} samples")
+            
+            logger.info("✓ Datasets loaded and tokenized from raw JSON")
+            
+            if mem_after > 12:
+                logger.warning(f"⚠️ High memory usage after dataset loading: {mem_after:.2f}GB")
+            
+            return train_dataset, val_dataset
+        
+        # Fallback to tokenized datasets if raw JSON not available
+        logger.info("Raw JSON not found, trying tokenized datasets...")
         tokenized_dir = io_config.get('dataset_dir', {}).get('tokenized', './datasets/tokenized')
         
         train_path = os.path.join(tokenized_dir, 'train')
         val_path = os.path.join(tokenized_dir, 'validation')
-        
-        logger.info(f"Loading datasets from {tokenized_dir}...")
         
         # Load training dataset
         if os.path.exists(train_path):
@@ -291,6 +457,7 @@ def load_tokenized_datasets(io_config: Dict[str, Any], logger: logging.Logger):
             val_dataset = train_dataset.shuffle().select(range(min(1000, len(train_dataset))))
         
         return train_dataset, val_dataset
+        
     except Exception as e:
         logger.error(f"Error loading datasets: {e}")
         return None, None
@@ -301,7 +468,90 @@ def create_trainer(model, tokenizer, train_dataset, val_dataset,
                   logger: logging.Logger):
     """Create Trainer with custom callbacks."""
     try:
-        logger.info("Creating Trainer...")
+        logger.info("Creating Trainer with progress monitoring...")
+        
+        # Add progress callback
+        from transformers import TrainerCallback
+        import psutil
+        import torch
+        
+        class ProgressCallback(TrainerCallback):
+            def __init__(self, total_samples, max_memory_gb=14):
+                self.total_samples = total_samples
+                self.start_time = None
+                self.max_memory_gb = max_memory_gb
+                self.max_steps = None
+            
+            def get_memory_usage(self):
+                """Get current memory usage in GB"""
+                process = psutil.Process()
+                mem_info = process.memory_info()
+                ram_gb = mem_info.rss / (1024**3)  # Resident Set Size in GB
+                
+                # GPU memory if available
+                gpu_gb = 0
+                if torch.cuda.is_available():
+                    gpu_gb = torch.cuda.memory_allocated() / (1024**3)
+                
+                return ram_gb, gpu_gb
+            
+            def log_memory(self, context=""):
+                """Log memory usage and optimize if approaching limit"""
+                ram_gb, gpu_gb = self.get_memory_usage()
+                total_gb = ram_gb + gpu_gb
+                
+                logger.info(f"💾 Memory [{context}]: RAM={ram_gb:.2f}GB, GPU={gpu_gb:.2f}GB, Total={total_gb:.2f}GB (Limit: {self.max_memory_gb}GB)")
+                
+                if total_gb > self.max_memory_gb * 0.95:
+                    logger.warning(f"⚠️ Memory usage high: {total_gb:.2f}GB used")
+                    import gc
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    gc.collect()
+                elif total_gb > self.max_memory_gb:
+                    logger.warning(f"⚠️ Memory total ({total_gb:.2f}GB) exceeds soft threshold ({self.max_memory_gb}GB) - running gc")
+                    import gc
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    gc.collect()
+            
+            def on_train_begin(self, args, state, control, **kwargs):
+                self.start_time = time.time()
+                self.max_steps = args.max_steps if args.max_steps > 0 else state.max_steps
+                logger.info(f"🚀 Training started with {self.total_samples} samples")
+                logger.info(f"📊 Training configuration: {args.num_train_epochs} epochs, {self.max_steps} max steps, batch size {args.per_device_train_batch_size}")
+                logger.info(f"⏱️ Estimated completion time: {self.max_steps / 2:.1f} minutes (assuming ~30 sec/step)")
+                logger.info(f"💾 Memory limit: {self.max_memory_gb}GB")
+                self.log_memory("start")
+            
+            def on_step_begin(self, args, state, control, **kwargs):
+                if state.global_step % 10 == 0:
+                    logger.info(f"🔄 Step {state.global_step}: Processing training data...")
+                    self.log_memory(f"step_{state.global_step}")
+            
+            def on_step_end(self, args, state, control, **kwargs):
+                if state.log_history:
+                    last_log = state.log_history[-1]
+                    if 'loss' in last_log:
+                        elapsed_time = time.time() - self.start_time
+                        steps_per_sec = state.global_step / elapsed_time if elapsed_time > 0 else 0
+                        eta = (state.max_steps - state.global_step) / steps_per_sec if steps_per_sec > 0 and state.max_steps else 0
+                        logger.info(f"📈 Step {state.global_step}: loss={last_log['loss']:.4f}, speed={steps_per_sec:.2f} steps/s, ETA={eta/60:.1f} min")
+            
+            def on_epoch_end(self, args, state, control, **kwargs):
+                logger.info(f"✅ Epoch {state.epoch} completed")
+                self.log_memory(f"epoch_{state.epoch}")
+            
+            def on_train_end(self, args, state, control, **kwargs):
+                elapsed_time = time.time() - self.start_time
+                logger.info(f"🎉 Training completed in {elapsed_time/60:.1f} minutes")
+                self.log_memory("final")
+            
+            def on_evaluate(self, args, state, control, metrics=None, **kwargs):
+                self.log_memory("evaluation_start")
+                if metrics:
+                    logger.info(f"📊 Evaluation: {metrics}")
+                self.log_memory("evaluation_end")
         
         # Get output paths
         output_dir = io_config.get('output_dir', './outputs')
@@ -312,7 +562,18 @@ def create_trainer(model, tokenizer, train_dataset, val_dataset,
         Path(adapter_dir).mkdir(parents=True, exist_ok=True)
         Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
         
-        # Create training arguments
+        # Auto-detect hardware bfloat16 support (T4 GPUs do not support bf16)
+        bf16_supported = torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+        use_bf16 = training_config.get('bf16', False) and bf16_supported
+        use_fp16 = training_config.get('fp16', True) if not use_bf16 else False
+        
+        if training_config.get('bf16', False) and not bf16_supported:
+            logger.warning("⚠️ Hardware does not natively support bfloat16 (e.g. NVIDIA T4). Automatically falling back to fp16=True.")
+
+        eval_strat = "steps" if val_dataset is not None else "no"
+        load_best = training_config.get('load_best_model_at_end', True) if val_dataset is not None else False
+
+        # Create training arguments with progress bars enabled
         training_args = TrainingArguments(
             output_dir=checkpoint_dir,
             num_train_epochs=training_config['num_train_epochs'],
@@ -325,39 +586,53 @@ def create_trainer(model, tokenizer, train_dataset, val_dataset,
             save_steps=training_config['save_steps'],
             eval_steps=training_config.get('eval_steps', training_config['save_steps']),
             max_steps=training_config.get('max_steps', 0),
-            fp16=training_config.get('fp16', False),
-            bf16=training_config.get('bf16', True),
+            fp16=use_fp16,
+            bf16=use_bf16,
             gradient_checkpointing=training_config['gradient_checkpointing'],
             dataloader_num_workers=training_config.get('dataloader_num_workers', 4),
             max_grad_norm=training_config['max_grad_norm'],
             weight_decay=training_config['weight_decay'],
             optim=training_config['optim'],
             lr_scheduler_type=training_config['lr_scheduler_type'],
-            disable_tqdm=training_config.get('disable_tqdm', False),
-            load_best_model_at_end=training_config.get('load_best_model_at_end', True),
+            disable_tqdm=False,  # Force enable progress bars
+            load_best_model_at_end=load_best,
             metric_for_best_model=training_config.get('metric_for_best_model', 'eval_loss'),
             greater_is_better=training_config.get('greater_is_better', False),
             save_total_limit=training_config.get('save_total_limit', 3),
             report_to=training_config.get('report_to', []),
             seed=training_config.get('seed', 42),
-            evaluation_strategy="steps" if val_dataset else "no",
+            eval_strategy=eval_strat,
             save_strategy="steps",
+            logging_first_step=True,
+            dataloader_pin_memory=False,  # Reduce memory
+            gradient_checkpointing_kwargs={'use_reentrant': False}  # Avoid reentrant bugs
         )
+        # Use default data collator since dataset is already tokenized with input_ids and labels
+        from transformers import DefaultDataCollator
+        data_collator = DefaultDataCollator(return_tensors="pt")
         
-        # Data collator
-        data_collator = DataCollatorForLanguageModeling(
-            tokenizer=tokenizer,
-            mlm=False
-        )
+        # Debug: Check dataset format
+        if len(train_dataset) > 0:
+            sample = train_dataset[0]
+            logger.info(f"📋 Sample dataset keys: {list(sample.keys())}")
+            logger.info(f"📋 input_ids shape: {len(sample.get('input_ids', []))}")
+            logger.info(f"📋 attention_mask shape: {len(sample.get('attention_mask', []))}")
+            logger.info(f"📋 labels shape: {len(sample.get('labels', []))}")
         
-        # Create trainer
+        # Create trainer with progress and memory monitoring callback
+        max_memory_gb = 14  # 14GB RAM limit
+        # Enable efficient CUDA memory allocation and prevent fragmentation
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         trainer = Trainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
             data_collator=data_collator,
-            tokenizer=tokenizer
+            callbacks=[ProgressCallback(len(train_dataset), max_memory_gb)]
         )
         
         logger.info("✓ Trainer created successfully")
@@ -373,7 +648,7 @@ def create_trainer(model, tokenizer, train_dataset, val_dataset,
         return None
 
 
-def train_model(trainer, json_log_file: str, logger: logging.Logger):
+def train_model(trainer, json_log_file: str, logger: logging.Logger, resume_from_checkpoint: str = None):
     """Main training loop with comprehensive logging."""
     try:
         logger.info("=" * 60)
@@ -393,7 +668,11 @@ def train_model(trainer, json_log_file: str, logger: logging.Logger):
         start_time = datetime.now()
         logger.info(f"Training start time: {start_time}")
         
-        result = trainer.train()
+        if resume_from_checkpoint:
+            logger.info(f"Resuming training from checkpoint: {resume_from_checkpoint}")
+            result = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        else:
+            result = trainer.train()
         
         end_time = datetime.now()
         training_duration = (end_time - start_time).total_seconds()
@@ -467,15 +746,16 @@ def main():
     if config is None:
         return 1
     
-    # Get configurations
-    io_config = config['cloud']['io']
-    model_config = config['model']
-    training_config = config['training']
-    lora_config = config['training']['lora']
-    quantization_config = config['model']['quantization']
+    # Get configurations with fallbacks
+    io_config = config.get('cloud', {}).get('io') or config.get('io', {})
+    model_config = config.get('model', {})
+    training_config = config.get('training', {})
+    lora_config = training_config.get('lora', {})
+    quantization_config = model_config.get('quantization', {})
     
     # Setup logging
-    logger, json_log_file = setup_logging(io_config['log_dir'], args.output_name)
+    log_dir = io_config.get('log_dir', './logs')
+    logger, json_log_file = setup_logging(log_dir, args.output_name)
     
     logger.info("=" * 60)
     logger.info("DeepSeek Fine-tuning Training")
@@ -484,8 +764,10 @@ def main():
     logger.info(f"Resume mode: {args.resume}")
     logger.info(f"Output name: {args.output_name}")
     
-    # Save training configuration
-    config_output = os.path.join(io_config['output_dir'], f"{args.output_name}_config.json")
+    # Save training configuration - ensure output directory exists
+    output_dir = io_config.get('output_dir', './outputs')
+    os.makedirs(output_dir, exist_ok=True)
+    config_output = os.path.join(output_dir, f"{args.output_name}_config.json")
     save_training_config(config, config_output)
     
     # Validate environment
@@ -494,12 +776,13 @@ def main():
         return 1
     
     # Load tokenizer
-    tokenizer = load_tokenizer(model_config, io_config['cache_dir'], logger)
+    cache_dir = io_config.get('cache_dir', './cache') if io_config else './cache'
+    tokenizer = load_tokenizer(model_config, cache_dir, logger)
     if tokenizer is None:
         return 1
     
     # Load model
-    model = load_model(model_config, quantization_config, io_config['cache_dir'], logger)
+    model = load_model(model_config, quantization_config, cache_dir, logger)
     if model is None:
         return 1
     
@@ -508,32 +791,34 @@ def main():
     if model is None:
         return 1
     
-    # Load datasets
-    train_dataset, val_dataset = load_tokenized_datasets(io_config, logger)
+    # Load datasets (will try raw JSON first, avoiding tokenization)
+    model_config = config.get('model', {})
+    tokenize_config = config.get('dataset', {}).get('tokenization', {})
+    train_dataset, val_dataset = load_tokenized_datasets(io_config, model_config, tokenize_config, tokenizer, logger)
     if train_dataset is None:
         return 1
     
     # Create trainer
     trainer = create_trainer(model, tokenizer, train_dataset, val_dataset, 
-                            training_config, io_config, logger)
+                            training_config, io_config or {}, logger)
     if trainer is None:
         return 1
     
     # Resume from checkpoint if specified
+    resume_path = None
     if args.resume or args.checkpoint:
         if args.checkpoint:
             resume_path = args.checkpoint
         else:
-            resume_path = find_latest_checkpoint(io_config['checkpoint_dir'], logger)
+            resume_path = find_latest_checkpoint(io_config.get('checkpoint_dir', './checkpoints'), logger)
         
         if resume_path:
-            logger.info(f"Resuming from checkpoint: {resume_path}")
-            trainer.train(resume_from_checkpoint=resume_path)
+            logger.info(f"Found checkpoint for resume: {resume_path}")
         else:
             logger.warning("No checkpoint found for resume, starting from scratch")
     
     # Train model
-    result, final_adapter = train_model(trainer, json_log_file, logger)
+    result, final_adapter = train_model(trainer, json_log_file, logger, resume_from_checkpoint=resume_path)
     
     if result is None:
         logger.error("Training failed")

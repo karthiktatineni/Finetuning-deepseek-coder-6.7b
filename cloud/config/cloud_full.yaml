@@ -1,0 +1,403 @@
+# Complete Cloud Configuration for DeepSeek Fine-tuning
+# Merged: cloud.yaml + training.yaml + model.yaml + dataset.yaml
+
+# Cloud Configuration (A100/H100)
+cloud:
+  # Device type
+  device: "cuda"
+
+  # Number of GPUs
+  num_gpus: 1
+
+  # GPU type (A100_40GB, A100_80GB, H100)
+  gpu_type: "T4"
+
+  # Available VRAM per GPU in GB
+  available_vram: 16
+
+  # Total system memory in GB
+  system_memory: 120
+
+  # Validation settings
+  validation:
+    # Validate before training
+    validate_before_training: true
+
+    # Check CUDA availability
+    check_cuda: true
+
+    # Check VRAM availability
+    check_vram: true
+
+    # Check disk space (GB minimum)
+    min_disk_space: 50
+
+    # Check model existence
+    check_model: true
+
+    # Check tokenizer existence
+    check_tokenizer: true
+
+    # Check dataset existence
+    check_dataset: true
+
+    # Check dependencies
+    check_dependencies: true
+
+# Performance Configuration
+performance:
+  # Use flash attention 2
+  use_flash_attention: true
+
+  # Use gradient checkpointing
+  use_gradient_checkpointing: true
+
+  # Use mixed precision
+  use_mixed_precision: true
+
+  # Precision type (fp16, bf16)
+  precision: "fp16"
+
+  # Optimize for throughput
+  optimize_for_throughput: true
+
+# IO Configuration
+io:
+  # Cache directory
+  cache_dir: "./cache"
+
+  # Output directory
+  output_dir: "./outputs"
+
+  # Adapter directory
+  adapter_dir: "./adapters"
+
+  # Checkpoint directory
+  checkpoint_dir: "./checkpoints"
+
+  # Log directory
+  log_dir: "./logs"
+
+  # Dataset directories
+  dataset_dir:
+    raw: "./datasets/raw"
+    processed: "./datasets/processed"
+    merged: "./datasets/merged"
+    tokenized: "./datasets/tokenized"
+
+# Monitoring Configuration
+monitoring:
+  # Enable GPU monitoring
+  enable_gpu_monitoring: true
+
+  # Enable memory monitoring
+  enable_memory_monitoring: true
+
+  # Logging interval (seconds)
+  log_interval: 60
+
+  # Save metrics as JSON
+  save_json: true
+
+  # Save metrics as CSV
+  save_csv: true
+
+  # WandB project
+  wandb_project: "deepseek-finetuning"
+
+  # Tensorboard
+  tensorboard: true
+
+# Resume Configuration
+resume:
+  # Auto-resume from latest checkpoint
+  auto_resume: true
+
+  # Resume checkpoint path (empty = auto-discover)
+  checkpoint_path: ""
+
+  # Resume with optimizer state
+  resume_optimizer: true
+
+  # Resume with scheduler state
+  resume_scheduler: true
+
+  # Resume with RNG state
+  resume_rng: true
+
+# Model Configuration
+model:
+  # Base model name or path
+  base_model: "deepseek-ai/deepseek-coder-6.7b-instruct"
+
+  # Model revision
+  model_revision: "main"
+
+  # Trust remote code
+  trust_remote_code: true
+
+  # Use cache
+  use_cache: true
+
+# Quantization Configuration
+quantization:
+  # Load in 4-bit
+  load_in_4bit: true
+
+  # Load in 8-bit
+  load_in_8bit: false
+
+  # BNB config
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+# Sequence Configuration
+sequence:
+  # Maximum sequence length (reduced to 1024 for T4 16GB VRAM)
+  max_seq_length: 1024
+
+  # Context window size
+  context_window: 1024
+
+# Special Tokens
+special_tokens:
+  # Pad token
+  pad_token: "<|pad|>"
+
+  # EOS token
+  eos_token: "<|end_of_sentence|>"
+
+  # BOS token
+  bos_token: "<|start_of_sentence|>"
+
+  # Add special tokens
+  add_special_tokens: false
+
+# Model Loading Configuration
+loading:
+  # Device Map (auto, balanced_low_0, sequential)
+  device_map: "auto"
+
+  # Torch dtype
+  torch_dtype: "bfloat16"
+
+  # Low CPU memory usage
+  low_cpu_mem_usage: true
+
+# Training Configuration (optimized for 1-2 hour completion)
+training:
+  # Number of training epochs (reduced for faster completion)
+  num_train_epochs: 1
+
+  # Learning rate
+  learning_rate: 2.0e-4
+
+  # Warmup steps
+  warmup_steps: 100
+
+  # Logging frequency (steps) - increased to reduce overhead
+  logging_steps: 25
+
+  # Save frequency (steps) - reduced for faster training
+  save_steps: 500
+
+  # Evaluation frequency (steps) - reduced for faster training
+  eval_steps: 500
+
+  # Maximum training steps (optimized for 2-3 hour completion limit)
+  max_steps: 800
+
+  # Gradient checkpointing (enables memory efficiency)
+  gradient_checkpointing: true
+
+  # Gradient accumulation steps (reduced for 4x faster step speed)
+  gradient_accumulation_steps: 4
+
+  # Per device batch size (reduced for T4 16GB)
+  per_device_train_batch_size: 1
+
+  # Per device eval batch size (reduced for T4 16GB)
+  per_device_eval_batch_size: 1
+
+  # Number of dataloader workers (increased to use RAM fully)
+  dataloader_num_workers: 4
+
+  # Max gradient norm for clipping
+  max_grad_norm: 1.0
+
+  # Weight decay
+  weight_decay: 0.01
+
+  # Optimizer type
+  optim: "paged_adamw_8bit"
+
+  # Scheduler type
+  lr_scheduler_type: "cosine"
+
+  # Precision (fp16, bf16, or no)
+  fp16: true
+  bf16: false
+
+  # Disable TQDM
+  disable_tqdm: false
+
+  # Load best model
+  load_best_model_at_end: true
+
+  # Metric for best model
+  metric_for_best_model: "eval_loss"
+
+  # Greater is better
+  greater_is_better: false
+
+  # Save total limit
+  save_total_limit: 3
+
+  # Report to
+  report_to: ["tensorboard", "wandb"]
+
+  # Seed
+  seed: 42
+
+# LoRA Configuration
+lora:
+  # LoRA rank
+  r: 16
+
+  # LoRA alpha
+  lora_alpha: 32
+
+  # LoRA dropout
+  lora_dropout: 0.05
+
+  # Target modules
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+  # Bias (none, all, lora_only)
+  bias: "none"
+
+  # Task type
+  task_type: "CAUSAL_LM"
+
+# Dataset Configuration
+dataset:
+  # List of datasets to download and process
+  sources:
+    - name: "opencoder_stage1"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 400000
+      priority: 1
+
+    - name: "opencoder_stage2"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 400000
+      priority: 2
+
+    - name: "codealpaca"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 0
+      priority: 3
+
+    - name: "apps"
+      format: "huggingface"
+      instruction_field: "question"
+      response_field: "solutions"
+      max_samples: 0
+      priority: 4
+
+    - name: "codesearchnet"
+      format: "huggingface"
+      instruction_field: "func_documentation_string"
+      response_field: "code"
+      max_samples: 0
+      priority: 5
+
+    - name: "alpaca_data_cleaned.json"
+      format: "json"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 0
+      priority: 6
+
+    - name: "code_alpaca_20k.json"
+      format: "json"
+      instruction_field: "instruction"
+      response_field: "output"
+      max_samples: 0
+      priority: 7
+
+    - name: "classeval"
+      format: "huggingface"
+      instruction_field: "instruction"
+      response_field: "code"
+      max_samples: 0
+      priority: 8
+      eval_only: true
+
+  # Dataset merging configuration
+  merging:
+    # Merge strategy: "concat", "sample", "weighted"
+    strategy: "concat"
+
+    # Maximum samples to prevent OOM (set to 0 for unlimited)
+    max_samples: 850000
+
+    # Target total samples
+    target_total_samples: 850000
+
+    # Weights for weighted sampling
+    weights:
+      opencoder_stage1: 2.0
+      opencoder_stage2: 2.5
+      codealpaca: 1.2
+      apps: 1.3
+      codesearchnet: 1.1
+      alpaca_data_cleaned.json: 1.0
+      code_alpaca_20k.json: 1.4
+
+  # Preprocessing configuration
+  preprocessing:
+    # Max samples per dataset for testing (0 = all samples)
+    max_samples: 0
+
+    # Shuffle dataset after merge
+    shuffle: true
+
+    # Random seed for shuffling
+    seed: 42
+
+    # Train/validation split
+    train_split: 0.95
+
+    # Text normalization
+    normalize_text: true
+
+    # Remove duplicates
+    remove_duplicates: true
+
+    # Max length percentage warning
+    max_length_warning_threshold: 0.95
+
+  # Tokenization configuration
+  tokenization:
+    # Max sequence length (reduced to 1024 for T4 16GB VRAM)
+    max_seq_length: 1024
+
+    # Truncation strategy
+    truncation: true
+
+    # Padding strategy
+    padding: "max_length"
+
+    # Return attention mask
+    return_attention_mask: true
+
+    # Return token type ids
+    return_token_type_ids: false

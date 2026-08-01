@@ -29,11 +29,26 @@ def load_config(config_file):
         return None
 
 
-def load_processed_dataset(filepath):
-    """Load processed dataset."""
+def count_json_lines(filepath):
+    """Count lines/samples in JSON file without loading full content."""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
+            return len(data)
+    except Exception as e:
+        print(f"Error counting lines in {filepath}: {e}")
+        return 0
+
+
+def load_processed_dataset(filepath, max_samples=None):
+    """Load processed dataset with optional sample limit."""
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        if max_samples and len(data) > max_samples:
+            print(f"File has {len(data)} samples, limiting to {max_samples}")
+            data = data[:max_samples]
         
         print(f"Loaded {len(data)} samples from {filepath}")
         return data
@@ -66,21 +81,34 @@ def find_processed_datasets(processed_dir):
         return []
 
 
-def concatenate_datasets(datasets):
-    """Simple concatenation of all datasets."""
+def concatenate_datasets(datasets, max_samples=None):
+    """Simple concatenation of all datasets with memory limits."""
     print(f"Concatenating {len(datasets)} datasets...")
     
     merged_data = []
-    total_samples = 0
     
-    for dataset in datasets:
-        data = load_processed_dataset(dataset['path'])
+    # Load datasets one at a time with limits to prevent OOM
+    if max_samples:
+        samples_per_dataset = max_samples // len(datasets)
+        print(f"Limiting to {max_samples} total samples (~{samples_per_dataset} per dataset)")
+    else:
+        samples_per_dataset = None
+    
+    for i, dataset in enumerate(datasets):
+        print(f"Processing {dataset['name']} ({i+1}/{len(datasets)})...")
+        
+        if samples_per_dataset:
+            print(f"  Loading up to {samples_per_dataset} samples")
+        
+        # Load dataset with sample limit
+        data = load_processed_dataset(dataset['path'], samples_per_dataset)
+        
         if data:
             merged_data.extend(data)
-            total_samples += len(data)
             print(f"  Added {len(data)} samples from {dataset['name']}")
     
-    print(f"Total samples after concatenation: {total_samples}")
+    print(f"Total samples after concatenation: {len(merged_data)}")
+    
     return merged_data
 
 
@@ -286,17 +314,25 @@ def main():
     seed = args.seed or merging_config.get('seed', 42)
     
     # Determine directories
-    io_config = config.get('cloud', {}).get('io')
+    io_config = config.get('io', {})
+    
+    # fallback to cloud.io if io is empty
+    if not io_config:
+        io_config = config.get('cloud', {}).get('io', {})
     
     if args.input_dir:
         input_dir = args.input_dir
-    else:
+    elif io_config and io_config.get('dataset_dir', {}).get('processed'):
         input_dir = io_config['dataset_dir']['processed']
+    else:
+        input_dir = './datasets/processed'
     
     if args.output_dir:
         output_dir = args.output_dir
-    else:
+    elif io_config and io_config.get('dataset_dir', {}).get('merged'):
         output_dir = io_config['dataset_dir']['merged']
+    else:
+        output_dir = './datasets/merged'
     
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     
@@ -316,7 +352,8 @@ def main():
     merged_data = []
     
     if strategy == 'concat':
-        merged_data = concatenate_datasets(datasets)
+        max_samples = merging_config.get('max_samples', 100000)  # Default limit to prevent OOM
+        merged_data = concatenate_datasets(datasets, max_samples)
     elif strategy == 'sample':
         samples_per_dataset = args.samples_per_dataset or merging_config.get('samples_per_dataset', 50000)
         total_samples = args.total_samples

@@ -110,12 +110,12 @@ def verify_hf_token():
 
 def main():
     parser = argparse.ArgumentParser(description='Download models for DeepSeek fine-tuning')
-    parser.add_argument('--config', type=str, default='config/local.yaml',
+    parser.add_argument('--config', type=str, default='config/cloud.yaml',
                         help='Configuration file to use')
     parser.add_argument('--model', type=str, default=None,
                         help='Specific model to download (overrides config)')
     parser.add_argument('--cache-dir', type=str, default=None,
-                        help 'Override cache directory')
+                        help='Override cache directory')
     parser.add_argument('--skip-token', action='store_true',
                         help='Skip Hugging Face token verification')
     
@@ -135,8 +135,8 @@ def main():
         cache_dir = args.cache_dir
     else:
         # Try to get cache dir from config
-        io_config = config.get('local', {}).get('io') or config.get('cloud', {}).get('io')
-        cache_dir = io_config.get('cache_dir', './cache')
+        io_config = config.get('cloud', {}).get('io') or config.get('local', {}).get('io')
+        cache_dir = io_config.get('cache_dir', './cache') if io_config else './cache'
     
     print(f"\nCache directory: {cache_dir}")
     Path(cache_dir).mkdir(parents=True, exist_ok=True)

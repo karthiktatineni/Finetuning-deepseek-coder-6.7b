@@ -27,7 +27,7 @@ performance:
   use_mixed_precision: true
   
   # Precision type (fp16, bf16)
-  precision: "bf16"
+  precision: "fp16"
   
   # Optimize for throughput
   optimize_for_throughput: true
@@ -121,3 +121,12 @@ validation:
   
   # Check dependencies
   check_dependencies: true
+
+# Dataset Configuration
+dataset:
+  # Merging configuration
+  merging:
+    strategy: concat
+    train_split: 0.95
+    seed: 42
+    max_samples: # No limit - merge all available samples

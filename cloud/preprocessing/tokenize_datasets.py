@@ -9,19 +9,18 @@ import sys
 import argparse
 import yaml
 import json
-import logging
+import logging as standard_logging
 from pathlib import Path
 from tqdm import tqdm
 import torch
-import pandas as pd
 
 try:
     from transformers import AutoTokenizer
     from datasets import Dataset
     from multiprocessing import cpu_count
 except ImportError:
-    print("Error: Required libraries not installed")
-    print("Install with: pip install transformers datasets torch")
+    standard_logging.error("Error: Required libraries not installed")
+    standard_logging.error("Install with: pip install transformers datasets torch numpy")
     sys.exit(1)
 
 
@@ -70,21 +69,34 @@ def load_tokenizer(model_config, cache_dir=None):
         return None
 
 
-def load_merged_dataset(train_path, val_path):
-    """Load merged training and validation datasets."""
+def load_merged_dataset(train_path, val_path, max_samples=None):
+    """Load merged training and validation datasets with memory limits."""
     try:
         print("Loading merged datasets...")
         
         train_data = []
         if train_path and os.path.exists(train_path):
             with open(train_path, 'r', encoding='utf-8') as f:
-                train_data = json.load(f)
+                data = json.load(f)
+                print(f"  Found {len(data)} training samples in file")
+                if max_samples:
+                    print(f"  Limiting to {max_samples} samples to prevent OOM")
+                    train_data = data[:max_samples]
+                else:
+                    train_data = data
             print(f"  Loaded {len(train_data)} training samples")
         
         val_data = []
         if val_path and os.path.exists(val_path):
             with open(val_path, 'r', encoding='utf-8') as f:
-                val_data = json.load(f)
+                data = json.load(f)
+                print(f"  Found {len(data)} validation samples in file")
+                if max_samples:
+                    val_max = max_samples // 10  # Validation is 10% of training
+                    print(f"  Limiting to {val_max} samples to prevent OOM")
+                    val_data = data[:val_max]
+                else:
+                    val_data = data
             print(f"  Loaded {len(val_data)} validation samples")
         
         if not train_data:
@@ -257,12 +269,22 @@ def main():
     
     # Get configurations
     model_config = config.get('model', {})
+    if not model_config:
+        model_config = {
+            'base_model': 'deepseek-ai/deepseek-coder-6.7b-instruct',
+            'model_revision': 'main',
+            'trust_remote_code': True,
+            'special_tokens': {
+                'pad_token': '<|pad|>',
+                'eos_token': '<|end_of_sentence|>'
+            }
+        }
     tokenize_config = config.get('dataset', {}).get('tokenization', {})
-    io_config = config.get('cloud', {}).get('io')
+    io_config = config.get('cloud', {}).get('io') or config.get('io', {})
     
     # Determine parameters
     max_seq_length = args.max_seq_length or tokenize_config.get('max_seq_length', 4096)
-    num_workers = args.num_workers or min(cpu_count(), 4)
+    num_workers = args.num_workers or min(cpu_count(), 2)  # Reduce workers to prevent OOM
     cache_dir = io_config.get('cache_dir', './cache')
     
     print(f"Max sequence length: {max_seq_length}")
@@ -296,8 +318,10 @@ def main():
     if tokenizer is None:
         return 1
     
-    # Load datasets
-    train_data, val_data = load_merged_dataset(train_path, val_path)
+    # Load datasets with memory limits
+    # Force small dataset for testing to prevent OOM kills
+    max_samples = 1000  # Start with very small sample to test tokenization
+    train_data, val_data = load_merged_dataset(train_path, val_path, max_samples=max_samples)
     if train_data is None:
         return 1
     
@@ -311,6 +335,7 @@ def main():
     tokenized_train = train_dataset.map(
         function=lambda examples: tokenize_function(examples, tokenizer, max_seq_length, tokenize_config),
         batched=True,
+        batch_size=100,  # Smaller batches to prevent OOM
         num_proc=num_workers,
         remove_columns=train_dataset.column_names,
         desc="Tokenizing train"
@@ -322,6 +347,7 @@ def main():
         tokenized_val = val_dataset.map(
             function=lambda examples: tokenize_function(examples, tokenizer, max_seq_length, tokenize_config),
             batched=True,
+            batch_size=100,  # Smaller batches to prevent OOM
             num_proc=num_workers,
             remove_columns=val_dataset.column_names,
             desc="Tokenizing validation"

@@ -1,331 +1,140 @@
-#!/usr/bin/env python3
-"""
-Download datasets from Hugging Face Hub and other sources.
-Supports multiple datasets for DeepSeek fine-tuning.
+"""Download all coding datasets from HuggingFace Hub into datasets/raw/.
+
+Usage:
+    python scripts/download_datasets.py              # download all
+    python scripts/download_datasets.py codealpaca   # download one
 """
 
-import os
 import sys
-import argparse
-import yaml
-import json
-import requests
+import time
+from datasets import load_dataset
 from pathlib import Path
-from tqdm import tqdm
+import os
+from huggingface_hub import login
 
-try:
-    from huggingface_hub import hf_hub_download, login
-except ImportError:
-    print("Error: huggingface_hub not installed")
-    print("Install with: pip install huggingface_hub")
-    sys.exit(1)
+# ── Configuration ──────────────────────────────────────────────
+RAW_DIR = Path(__file__).resolve().parent.parent / "datasets" / "raw"
 
-
-def load_config(config_file):
-    """Load configuration from YAML file."""
-    try:
-        with open(config_file, 'r') as f:
-            config = yaml.safe_load(f)
-        return config
-    except FileNotFoundError:
-        print(f"Error: Configuration file {config_file} not found")
-        return None
-    except yaml.YAMLError as e:
-        print(f"Error: Invalid YAML in {config_file}: {e}")
-        return None
-
-
-def download_from_hf_hub(source, output_dir, cache_dir=None):
-    """Download dataset from Hugging Face Hub."""
-    try:
-        url = source['url']
-        filename = os.path.basename(url)
-        output_path = os.path.join(output_dir, filename)
-        
-        # If URL contains huggingface.co, use hf_hub_download
-        if 'huggingface.co' in url:
-            print(f"  Downloading via Hugging Face Hub...")
-            downloaded_path = hf_hub_download(
-                repo_id="/".join(url.split("/datasets/")[-1].split("/")[0:2]),
-                filename="data/" + filename if "train.json" in url else filename,
-                repo_type="dataset",
-                cache_dir=cache_dir,
-                resume_download=True
-            )
-            # Copy to output directory
-            import shutil
-            shutil.copy2(downloaded_path, output_path)
-        else:
-            # Regular URL download
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
-            total_size = int(response.headers.get('content-length', 0))
-            
-            with open(output_path, 'wb') as f, tqdm(
-                desc=f"  {filename}",
-                total=total_size,
-                unit='B',
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as progress_bar:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-                        progress_bar.update(len(chunk))
-        
-        print(f"  ✓ Downloaded: {output_path}")
-        return output_path
-    except Exception as e:
-        print(f"  ✗ Error downloading: {e}")
-        return None
+DATASETS = {
+    "opencoder_stage1": {
+        "hub_id": "OpenCoder-LLM/opc-sft-stage1",
+        "subset": ["realuser_instruct", "filtered_infinity_instruct", "largescale_diverse_instruct"],
+        "split": "train",
+        "description": "OpenCoder SFT Stage 1 — foundational coding pairs",
+    },
+    "opencoder_stage2": {
+        "hub_id": "OpenCoder-LLM/opc-sft-stage2",
+        "subset": ["educational_instruct", "evol_instruct", "mceval_instruct", "package_instruct"],
+        "split": "train",
+        "description": "OpenCoder SFT Stage 2 — advanced coding pairs",
+    },
+    "codealpaca": {
+        "hub_id": "sahil2801/CodeAlpaca-20k",
+        "subset": None,
+        "split": "train",
+        "description": "20k instruction-following coding examples",
+    },
+    "apps": {
+        "hub_id": "codeparrot/apps",
+        "subset": None,
+        "split": "train",
+        "description": "10k competitive programming problems (filter before training)",
+    },
+    "codesearchnet": {
+        "hub_id": "code_search_net",
+        "subset": "python",
+        "split": "train",
+        "description": "Code-docstring pairs (python subset) — code, func_documentation_string, language",
+    },
+    "classeval": {
+        "hub_id": "FudanSELab/ClassEval",
+        "subset": None,
+        "split": "test",
+        "eval_only": True,
+        "description": "Class-level code generation benchmark (EVAL ONLY — 100 tasks, no train split)",
+    },
+}
+# ───────────────────────────────────────────────────────────────
 
 
-def download_parquet_dataset(source, output_dir):
-    """Download Parquet dataset (OpenCoder format)."""
-    try:
-        import pandas as pd
-        
-        url = source['url']
-        filename = os.path.basename(url)
-        output_path = os.path.join(output_dir, filename)
-        
-        print(f"  Downloading Parquet file...")
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        
-        with open(output_path, 'wb') as f, tqdm(
-            desc=f"  {filename}",
-            total=total_size,
-            unit='B',
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as progress_bar:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    progress_bar.update(len(chunk))
-        
-        # Validate Parquet file
-        print(f"  Validating Parquet file...")
-        df = pd.read_parquet(output_path)
-        print(f"  ✓ Retrieved {len(df)} samples")
-        print(f"  Columns: {list(df.columns)}")
-        
-        return output_path
-    except Exception as e:
-        print(f"  ✗ Error downloading Parquet dataset: {e}")
-        return None
-
-
-def download_json_dataset(source, output_dir):
-    """Download JSON dataset."""
-    try:
-        import pandas as pd
-        
-        url = source['url']
-        filename = os.path.basename(url)
-        output_path = os.path.join(output_dir, filename)
-        
-        print(f"  Downloading JSON file...")
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        
-        with open(output_path, 'wb') as f, tqdm(
-            desc=f"  {filename}",
-            total=total_size,
-            unit='B',
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as progress_bar:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    progress_bar.update(len(chunk))
-        
-        # Validate JSON file
-        print(f"  Validating JSON file...")
-        
-        # Try JSON lines format first
-        if filename.endswith('.jsonl'):
-            df = pd.read_json(output_path, lines=True)
-        else:
-            # Try regular JSON
-            with open(output_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    df = pd.DataFrame(data)
-                else:
-                    df = pd.json_normalize(data)
-        
-        print(f"  ✓ Retrieved {len(df)} samples")
-        print(f"  Columns: {list(df.columns)}")
-        
-        return output_path
-    except Exception as e:
-        print(f"  ✗ Error downloading JSON dataset: {e}")
-        return None
-
-
-def download_csv_dataset(source, output_dir):
-    """Download CSV dataset."""
-    try:
-        import pandas as pd
-        
-        url = source['url']
-        filename = os.path.basename(url)
-        output_path = os.path.join(output_dir, filename)
-        
-        print(f"  Downloading CSV file...")
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
-        
-        with open(output_path, 'wb') as f, tqdm(
-            desc=f"  {filename}",
-            total=total_size,
-            unit='B',
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as progress_bar:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    progress_bar.update(len(chunk))
-        
-        # Validate CSV file
-        print(f"  Validating CSV file...")
-        df = pd.read_csv(output_path)
-        print(f"  ✓ Retrieved {len(df)} samples")
-        print(f"  Columns: {list(df.columns)}")
-        
-        return output_path
-    except Exception as e:
-        print(f"  ✗ Error downloading CSV dataset: {e}")
-        return None
-
-
-def verify_dataset_file(filepath, expected_format="json"):
-    """Verify downloaded dataset file integrity."""
-    try:
-        import pandas as pd
-        
-        print(f"  Verifying: {filepath}")
-        
-        if expected_format == "parquet":
-            df = pd.read_parquet(filepath)
-        elif expected_format == "jsonl":
-            df = pd.read_json(filepath, lines=True)
-        elif expected_format == "json":
-            with open(filepath, 'r') as f:
-                data = json.load(f)
-                df = pd.DataFrame(data) if isinstance(data, list) else pd.json_normalize(data)
-        elif expected_format == "csv":
-            df = pd.read_csv(filepath)
-        else:
-            print(f"  ✗ Unknown format: {expected_format}")
+def check_auth():
+    """Check Hugging Face authentication for protected datasets."""
+    hf_token = os.environ.get('HF_TOKEN')
+    if hf_token:
+        try:
+            login(token=hf_token)
+            return True
+        except Exception as e:
+            print(f"  [WARN] HF auth failed: {e}")
             return False
-        
-        print(f"  ✓ Valid: {len(df)} samples, {len(df.columns)} columns")
-        return True
+    return False
+
+
+def download_one(name, info):
+    """Download a single dataset and save to disk."""
+    save_path = RAW_DIR / name
+    if save_path.exists() and any(save_path.iterdir()):
+        # Skip if already has data (beyond .gitkeep)
+        real_files = [f for f in save_path.iterdir() if f.name != ".gitkeep"]
+        if real_files:
+            print(f"  [SKIP] {name}: already downloaded, skipping (delete folder to re-download)")
+            return
+
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    hub_id = info["hub_id"]
+    subset = info.get("subset")
+    split = info.get("split", "train")
+
+    print(f"  [DOWN] {name}: downloading {hub_id} (split={split})...")
+    if info.get("eval_only"):
+        print(f"      [WARN] EVAL ONLY -- do not include in training data")
+    start = time.time()
+
+    try:
+        from datasets import concatenate_datasets
+        if isinstance(subset, list):
+            datasets = []
+            for sub in subset:
+                print(f"      [DOWN] downloading subset: {sub}...")
+                ds = load_dataset(hub_id, sub, split=split)
+                datasets.append(ds)
+            ds = concatenate_datasets(datasets)
+        else:
+            ds = load_dataset(hub_id, subset, split=split)
+            
+        ds.save_to_disk(str(save_path))
+        elapsed = time.time() - start
+        print(f"  [OK] {name}: {len(ds)} examples saved ({elapsed:.1f}s)")
     except Exception as e:
-        print(f"  ✗ Verification failed: {e}")
-        return False
+        print(f"  [FAIL] {name}: download failed -- {e}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Download datasets for DeepSeek fine-tuning')
-    parser.add_argument('--config', type=str, default='config/cloud.yaml',
-                        help='Configuration file to use')
-    parser.add_argument('--dataset', type=str, default=None,
-                        help='Specific dataset to download (overrides config)')
-    parser.add_argument('--output-dir', type=str, default=None,
-                        help='Override output directory')
+    # Check authentication
+    check_auth()
     
-    args = parser.parse_args()
-    
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Allow downloading a specific dataset by name
+    targets = sys.argv[1:] if len(sys.argv) > 1 else list(DATASETS.keys())
+
     print("=" * 60)
-    print("Dataset Download Script")
+    print("  Dataset Download Pipeline")
     print("=" * 60)
-    
-    # Load configuration
-    config = load_config(args.config)
-    if config is None:
-        return 1
-    
-    # Get dataset configuration
-    dataset_config = config.get('dataset', {})
-    
-    # Determine output directory
-    if args.output_dir:
-        output_dir = args.output_dir
-    else:
-        io_config = config.get('cloud', {}).get('io')
-        output_dir = io_config['dataset_dir']['raw']
-    
-    print(f"Output directory: {output_dir}")
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-    
-    # Get cache directory
-    io_config = config.get('cloud', {}).get('io')
-    cache_dir = io_config.get('cache_dir', './cache')
-    
-    # Determine which datasets to download
-    if args.dataset:
-        filtered_sources = [s for s in dataset_config.get('sources', []) if s['name'] == args.dataset]
-        if not filtered_sources:
-            print(f"✗ Dataset '{args.dataset}' not found in configuration")
-            return 1
-        datasets_to_download = filtered_sources
-    else:
-        datasets_to_download = dataset_config.get('sources', [])
-    
-    # Download datasets
-    success_count = 0
-    for source in datasets_to_download:
-        print(f"\n{'=' * 60}")
-        print(f"Processing: {source['name']}")
-        print(f"Source: {source['url']}")
-        print(f"Format: {source['format']}")
-        print(f"{'=' * 60}")
-        
-        dataset_format = source.get('format', 'json')
-        
-        # Download based on format
-        if dataset_format == 'parquet':
-            output_path = download_parquet_dataset(source, output_dir)
-        elif dataset_format == 'json' or dataset_format == 'jsonl':
-            output_path = download_json_dataset(source, output_dir)
-        elif dataset_format == 'csv':
-            output_path = download_csv_dataset(source, output_dir)
-        else:
-            print(f"✗ Unknown format: {dataset_format}")
+    print(f"  Target directory: {RAW_DIR}")
+    print(f"  Datasets: {', '.join(targets)}")
+    print("=" * 60)
+
+    for name in targets:
+        if name not in DATASETS:
+            print(f"  [WARN] Unknown dataset: {name}")
+            print(f"     Available: {', '.join(DATASETS.keys())}")
             continue
-        
-        if output_path:
-            # Verify downloaded file
-            if verify_dataset_file(output_path, dataset_format):
-                success_count += 1
-            else:
-                print(f"✗ Verification failed for {source['name']}")
-    
-    # Summary
-    print(f"\n{'=' * 60}")
-    print("Download Summary")
-    print(f"{'=' * 60}")
-    print(f"Datasets requested: {len(datasets_to_download)}")
-    print(f"Successfully downloaded: {success_count}")
-    print(f"Failed: {len(datasets_to_download) - success_count}")
-    
-    if success_count == len(datasets_to_download):
-        print("\n✓ All datasets downloaded successfully!")
-        print(f"Files saved to: {output_dir}")
-        return 0
-    else:
-        print(f"\n✗ {len(datasets_to_download) - success_count} download(s) failed")
-        return 1
+        download_one(name, DATASETS[name])
+
+    print("\n  Done.")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
